@@ -14,15 +14,11 @@ public class PhoneAccess {
     private final Volunteers volunteers;
     private final Events events;
     private final SchedulerService scheduler;
-    public PhoneAccess(Volunteers volunteers, Events events, SchedulerService scheduler) {
-        this.volunteers = volunteers; this.events = events; this.scheduler = scheduler;
+    public PhoneAccess(Volunteers volunteers, Events events, SchedulerService scheduler, OwnerIdentity ownerIdentity) {
+        this.volunteers = volunteers; this.events = events; this.scheduler = scheduler; this.ownerIdentity = ownerIdentity;
     }
-    @org.springframework.beans.factory.annotation.Value("${scheduler.app-owner-phone:8135160335}")
-    private String ownerPhone;
-    public boolean isOwnerPhone(String phone) {
-        String key = normalize(phone);
-        return !key.isEmpty() && key.equals(normalize(ownerPhone));
-    }
+    private final OwnerIdentity ownerIdentity;
+    public boolean isOwnerPhone(String phone) { return ownerIdentity.matches(phone); }
     public boolean isAppOwner(HttpSession session) {
         return session != null && isOwnerPhone((String) session.getAttribute(SESSION));
     }
@@ -46,7 +42,7 @@ public class PhoneAccess {
     }
     public List<Volunteer> matching(String phone) {
         String key = normalize(phone);
-        if (key.isEmpty()) return List.of();
+        if (key.isEmpty() || ownerIdentity.matches(key)) return List.of();
         var attributes = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
         if (attributes instanceof org.springframework.web.context.request.ServletRequestAttributes servlet
                 && Set.of("GET", "HEAD").contains(servlet.getRequest().getMethod())) {
@@ -102,7 +98,7 @@ public class PhoneAccess {
     }
     private List<Volunteers.AccessRow> permissions(HttpSession session) {
         String key = session == null ? "" : normalize((String) session.getAttribute(SESSION));
-        if (key.isEmpty()) return List.of();
+        if (key.isEmpty() || ownerIdentity.matches(key)) return List.of();
         var attributes = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
         if (!(attributes instanceof org.springframework.web.context.request.ServletRequestAttributes servlet)
                 || servlet.getRequest().getMethod() == null || servlet.getRequest().getMethod().isBlank()) attributes = null;
@@ -127,6 +123,7 @@ public class PhoneAccess {
         // Lock all event rows in a stable order to serialize global registration checks.
         events.findAll().stream().map(Event::getId).sorted().forEach(id -> events.lockForVolunteerUpdate(id));
         String phone = normalize(input.get("phone"));
+        ownerIdentity.requireVolunteerPhone(phone);
         if (phone.isEmpty()) throw new IllegalArgumentException("Enter a valid 10-digit phone number.");
         if (!matching(phone).isEmpty()) throw new IllegalArgumentException("This phone number already exists. Please log in.");
         Map<String, String> safe = new HashMap<>(input);
@@ -139,6 +136,7 @@ public class PhoneAccess {
         if (!ids(session).contains(id)) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN);
         scheduler.volunteer(eventId, id);
         String phone = normalize(input.get("phone"));
+        ownerIdentity.requireVolunteerPhone(phone);
         if (phone.isEmpty()) throw new IllegalArgumentException("Enter a valid 10-digit phone number.");
         Set<Long> own = ids(session);
         if (matching(phone).stream().anyMatch(other -> !own.contains(other.getId())))

@@ -17,7 +17,7 @@ class PhoneLookupTest {
     @Test void getReusesLookupOnlyWithinTheSameRequest() {
         Volunteers volunteers = mock(Volunteers.class);
         when(volunteers.findByNormalizedPhone("2105550100")).thenReturn(List.of());
-        PhoneAccess access = new PhoneAccess(volunteers, mock(Events.class), mock(SchedulerService.class));
+        PhoneAccess access = new PhoneAccess(volunteers, mock(Events.class), mock(SchedulerService.class), new org.volunteers.scheduler.service.OwnerIdentity("8135160335"));
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest("GET", "/events")));
         access.matching("+1 (210) 555-0100");
         access.matching("2105550100");
@@ -30,7 +30,7 @@ class PhoneLookupTest {
 
     @Test void writesAlwaysReadFreshRecords() {
         Volunteers volunteers = mock(Volunteers.class);
-        PhoneAccess access = new PhoneAccess(volunteers, mock(Events.class), mock(SchedulerService.class));
+        PhoneAccess access = new PhoneAccess(volunteers, mock(Events.class), mock(SchedulerService.class), new org.volunteers.scheduler.service.OwnerIdentity("8135160335"));
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest("POST", "/login")));
         access.matching("2105550100");
         access.matching("2105550100");
@@ -41,7 +41,7 @@ class PhoneLookupTest {
         for (String method : List.of("GET", "POST")) {
             Volunteers volunteers = mock(Volunteers.class);
             when(volunteers.findAccessByPhone("2105550100")).thenReturn(List.of());
-            PhoneAccess access = new PhoneAccess(volunteers, mock(Events.class), mock(SchedulerService.class));
+            PhoneAccess access = new PhoneAccess(volunteers, mock(Events.class), mock(SchedulerService.class), new org.volunteers.scheduler.service.OwnerIdentity("8135160335"));
             var session = new MockHttpSession();
             session.setAttribute(PhoneAccess.SESSION, "2105550100");
             RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest(method, "/events")));

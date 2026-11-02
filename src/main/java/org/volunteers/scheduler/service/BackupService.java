@@ -19,10 +19,11 @@ public class BackupService {
     private final Shifts shifts;
     private final Assignments assignments;
     private final ObjectMapper json;
+    private final OwnerIdentity ownerIdentity;
     public BackupService(SchedulerService scheduler, Events events, Departments departments, Volunteers volunteers,
-                         Shifts shifts, Assignments assignments, ObjectMapper json) {
+                         Shifts shifts, Assignments assignments, ObjectMapper json, OwnerIdentity ownerIdentity) {
         this.scheduler = scheduler; this.events = events; this.departments = departments; this.volunteers = volunteers;
-        this.shifts = shifts; this.assignments = assignments; this.json = json;
+        this.shifts = shifts; this.assignments = assignments; this.json = json; this.ownerIdentity = ownerIdentity;
     }
     public record Backup(long eventId, String token, Map<String, byte[]> files, Map<String, Integer> counts) implements java.io.Serializable {}
     private static final Map<String, List<String>> HEADERS = Map.of(
@@ -131,6 +132,7 @@ public class BackupService {
         });
         validateRows("volunteers", tables, r -> {
             Volunteer v = new Volunteer(); v.setEvent(event); v.setName(field(r.get(1), 160, true)); v.setPhone(field(r.get(2), 60, false));
+            ownerIdentity.requireVolunteerPhone(v.getPhone());
             v.setEmail(field(r.get(3), 254, false)); v.setCongregation(field(r.get(4), 160, false)); v.setNotes(field(r.get(5), 2000, false));
             v.setPrivilege(r.get(6).isEmpty() ? null : Volunteer.Privilege.valueOf(r.get(6)));
             Map<String, String> roles = json.readerFor(new TypeReference<Map<String, String>>() {})
@@ -160,7 +162,6 @@ public class BackupService {
                 Assignment a = new Assignment(); a.setShift(s); a.setVolunteer(reference(vs, id)); restoredAssignments.add(a);
             }
         });
-        if (vs.values().stream().noneMatch(Volunteer::isEventAdministrator)) throw new IllegalArgumentException(SchedulerService.LAST_ADMIN);
         assignments.deleteAll(assignments.findByShiftDepartmentEventIdOrderByIdAsc(eventId)); assignments.flush();
         shifts.deleteAll(shifts.findByDepartmentEventIdOrderByDateAscStartTimeAscIdAsc(eventId)); shifts.flush();
         volunteers.deleteAll(volunteers.findByEventIdOrderByNameAscIdAsc(eventId)); volunteers.flush();

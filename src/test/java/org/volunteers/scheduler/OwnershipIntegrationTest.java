@@ -29,7 +29,7 @@ class OwnershipIntegrationTest {
     @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
     List<Long> events = new ArrayList<>();
     Event event;
-    @BeforeEach void setup() { event = createEvent(); }
+    @BeforeEach void setup() { event = createEvent(); scheduler.saveVolunteer(event.getId(), null, profile("2105550099", true)); }
     @AfterEach void cleanup() {
         for (Long id : events) if (scheduler.events().stream().anyMatch(e -> e.getId().equals(id))) scheduler.deleteEvent(id);
     }
@@ -57,7 +57,7 @@ class OwnershipIntegrationTest {
     @Test void finalAdministratorCannotBeRemovedOrDemotedEvenByOwner() throws Exception {
         Volunteer owner = owner();
         assertThatThrownBy(() -> scheduler.deleteVolunteer(event.getId(), owner.getId())).hasMessage(SchedulerService.LAST_ADMIN);
-        var input = profile("8135160335", false); input.remove("departmentChoice");
+        var input = profile("2105550099", false); input.remove("departmentChoice");
         var d = scheduler.saveDepartment(event.getId(), null, Map.of("name", "Parking")); input.put("departmentRole_" + d.getId(), "VOLUNTEER");
         assertThatThrownBy(() -> scheduler.saveVolunteer(event.getId(), owner.getId(), input)).hasMessage(SchedulerService.LAST_ADMIN);
         mvc.perform(post("/events/" + event.getId() + "/volunteers/" + owner.getId() + "/delete").with(csrf()).session(session("8135160335")))
@@ -111,17 +111,17 @@ class OwnershipIntegrationTest {
         jdbc.update("delete from volunteer where event_id = ?", orphan.getId());
         migration.run(null); migration.run(null);
         assertThat(owner().getDepartmentRoles().values()).containsExactly(Volunteer.Role.VOLUNTEER);
-        assertThat(scheduler.snapshot(orphan.getId()).volunteers()).singleElement().satisfies(v -> assertThat(v.isEventAdministrator()).isTrue());
+        assertThat(scheduler.snapshot(orphan.getId()).volunteers()).isEmpty();
     }
-    @Test void backupPreservesAdministratorsAndRejectsOrphanedRestore() {
+    @Test void backupPreservesAdministratorsAndAllowsAdministratorFreeRestore() {
         var snapshot = backups.capture(event.getId());
         backups.restore(event.getId(), snapshot.files());
         assertThat(owner()).isNotNull();
         var files = new HashMap<>(snapshot.files());
         String csv = new String(files.get("volunteers"), java.nio.charset.StandardCharsets.UTF_8);
         files.put("volunteers", csv.replace("\"true\"", "\"false\"").getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        assertThatThrownBy(() -> backups.restore(event.getId(), files)).hasMessage(SchedulerService.LAST_ADMIN);
-        assertThat(owner()).isNotNull();
+        backups.restore(event.getId(), files);
+        assertThat(scheduler.snapshot(event.getId()).volunteers()).noneMatch(Volunteer::isEventAdministrator);
     }
     @Test void eventAdministratorsCanDeleteOnlyTheirOwnEvents() throws Exception {
         scheduler.saveVolunteer(event.getId(), null, profile("2105550005", true));
@@ -134,15 +134,15 @@ class OwnershipIntegrationTest {
         Volunteer first = owner();
         scheduler.saveVolunteer(event.getId(), null, profile("2105550006", true));
         var d = scheduler.saveDepartment(event.getId(), null, Map.of("name", "Parking"));
-        var input = profile("8135160335", false); input.remove("departmentChoice"); input.put("departmentRole_" + d.getId(), "VOLUNTEER");
+        var input = profile("2105550099", false); input.remove("departmentChoice"); input.put("departmentRole_" + d.getId(), "VOLUNTEER");
         scheduler.saveVolunteer(event.getId(), first.getId(), input);
         assertThat(scheduler.volunteer(event.getId(), first.getId()).isEventAdministrator()).isFalse();
         assertThat(access.isAppOwner(session("8135160335"))).isTrue();
     }
-    @Test void legacyBackupsConvertDepartmentAdminsAndEmptyRestoresAreRejected() {
+    @Test void legacyBackupsConvertDepartmentAdminsAndEmptyRestoresAreAllowed() {
         Volunteer first = owner();
         var d = scheduler.saveDepartment(event.getId(), null, Map.of("name", "Parking"));
-        var input = profile("8135160335", true); input.remove("departmentChoice"); input.put("departmentRole_" + d.getId(), "VOLUNTEER");
+        var input = profile("2105550099", true); input.remove("departmentChoice"); input.put("departmentRole_" + d.getId(), "VOLUNTEER");
         scheduler.saveVolunteer(event.getId(), first.getId(), input);
         var files = new HashMap<>(backups.capture(event.getId()).files());
         files.replaceAll((type, bytes) -> {
@@ -160,8 +160,8 @@ class OwnershipIntegrationTest {
         var empty = new HashMap<>(backups.capture(event.getId()).files());
         String csv = new String(empty.get("volunteers"), java.nio.charset.StandardCharsets.UTF_8);
         empty.put("volunteers", (String.join("\r\n", csv.lines().limit(2).toList()) + "\r\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        assertThatThrownBy(() -> backups.restore(event.getId(), empty)).hasMessage(SchedulerService.LAST_ADMIN);
-        assertThat(owner()).isNotNull();
+        backups.restore(event.getId(), empty);
+        assertThat(scheduler.snapshot(event.getId()).volunteers()).isEmpty();
     }
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.EnumSource(Volunteer.Role.class)
@@ -241,7 +241,7 @@ class OwnershipIntegrationTest {
                 try {
                     if (delete) scheduler.deleteVolunteer(event.getId(), id);
                     else {
-                        var input = profile(id.equals(first.getId()) ? "8135160335" : "2105550004", false);
+                        var input = profile(id.equals(first.getId()) ? "2105550099" : "2105550004", false);
                         input.remove("departmentChoice"); input.put("departmentRole_" + department.getId(), "VOLUNTEER");
                         scheduler.saveVolunteer(event.getId(), id, input);
                     }
@@ -254,4 +254,42 @@ class OwnershipIntegrationTest {
         }
         assertThat(volunteers.findByEventIdOrderByNameAscIdAsc(event.getId())).filteredOn(Volunteer::isEventAdministrator).hasSize(1);
     }
+    @Test void restoreRejectsOwnerBeforeReplacingData() {
+        var files = new HashMap<>(backups.capture(event.getId()).files());
+        String csv = new String(files.get("volunteers"), java.nio.charset.StandardCharsets.UTF_8);
+        files.put("volunteers", csv.replace("(210)555-0099", "(813)516-0335").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        assertThatThrownBy(() -> backups.restore(event.getId(), files)).hasMessageContaining(OwnerIdentity.RESERVED_PHONE);
+        assertThat(owner().getPhone()).isEqualTo("(210)555-0099");
+    }
+    @Test void ownerCreatedEventsHaveNoMembershipAndOwnerCannotRegister() throws Exception {
+        Event clean = createEvent();
+        assertThat(scheduler.snapshot(clean.getId()).volunteers()).isEmpty();
+        for (String phone : List.of("8135160335", "(813) 516-0335", "+1 813 516 0335")) {
+            assertThatThrownBy(() -> scheduler.saveVolunteer(clean.getId(), null, profile(phone, true)))
+                .hasMessage(OwnerIdentity.RESERVED_PHONE);
+            assertThatThrownBy(() -> access.signup(clean.getId(), profile(phone, false)))
+                .hasMessage(OwnerIdentity.RESERVED_PHONE);
+        }
+        mvc.perform(get("/events/" + clean.getId() + "/volunteers").session(session("8135160335")))
+            .andExpect(status().isOk()).andExpect(model().attributeDoesNotExist("currentVolunteerUrl"))
+            .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("8135160335"))));
+    }
+    @Test void cleanupRemovesOwnerMembershipAndAssignmentsOnlyOnce() {
+        Volunteer legacy = owner();
+        var d = scheduler.saveDepartment(event.getId(), null, Map.of("name", "Parking"));
+        var input = profile("2105550099", true); input.remove("departmentChoice"); input.put("departmentRole_" + d.getId(), "VOLUNTEER");
+        scheduler.saveVolunteer(event.getId(), legacy.getId(), input);
+        var shift = scheduler.saveShift(event.getId(), null, Map.of("departmentId", d.getId().toString(), "name", "Morning",
+            "date", "2027-06-04", "startTime", "09:00", "endTime", "10:00", "requiredCount", "1"));
+        scheduler.assign(event.getId(), shift.getId(), legacy.getId(), false);
+        jdbc.update("update volunteer set phone = ?, normalized_phone = ? where id = ?", "(813)516-0335", "8135160335", legacy.getId());
+        migration.run(null); migration.run(null);
+        var data = scheduler.snapshot(event.getId());
+        assertThat(data.volunteers()).isEmpty();
+        assertThat(data.assignments()).isEmpty();
+        assertThat(data.departments()).hasSize(1);
+        assertThat(data.shifts()).hasSize(1);
+        assertThat(access.canAdminister(session("8135160335"), event.getId())).isTrue();
+    }
+
 }

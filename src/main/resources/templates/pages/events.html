@@ -31,6 +31,7 @@
               >
             </div>
             <h2 th:text="${e.name}"></h2>
+            <p th:if="${e.type.name() == 'CIRCUIT_ASSEMBLY' and !#strings.isEmpty(e.circuit)}">Circuit: <span th:text="${e.circuit}"></span></p>
             <p class="muted">
               <span
                 th:text="${#temporals.format(e.startDate, 'MMM d, yyyy')}"
@@ -93,6 +94,9 @@
             </label>
             <label>Start date
               <input type="date" name="startDate" required th:value="${draft['startDate']}" />
+            </label>
+            <label data-circuit-field th:hidden="${draft['type'] != 'CIRCUIT_ASSEMBLY'}">Circuit <span class="optional">optional</span>
+              <input name="circuit" maxlength="60" placeholder="e.g. FL-58B" th:value="${draft['circuit']}" th:disabled="${draft['type'] != 'CIRCUIT_ASSEMBLY'}" />
             </label>
             <p class="muted" data-event-preview aria-live="polite"></p>
             <label

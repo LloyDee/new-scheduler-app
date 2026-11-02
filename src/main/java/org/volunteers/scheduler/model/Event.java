@@ -20,10 +20,12 @@ public class Event {
     @Column(nullable = false) private LocalDate endDate;
     @Column(length = 240) private String venue;
     @Column(length = 60) private String assembly;
+    @Column(length = 60) private String circuit;
     public Long getId() { return id; }
     public String getName() { return name; }
     public Type getType() { return type; }
     public String getAssembly() { return assembly; }
+    public String getCircuit() { return circuit; }
     public LocalDate getStartDate() { return startDate; }
     public LocalDate getEndDate() { return endDate; }
     public String getVenue() { return venue; }
@@ -33,4 +35,5 @@ public class Event {
     public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
     public void setVenue(String venue) { this.venue = venue; }
     public void setAssembly(String assembly) { this.assembly = assembly; }
+    public void setCircuit(String circuit) { this.circuit = circuit; }
 }

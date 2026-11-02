@@ -101,6 +101,8 @@ if (eventForm) {
     eventForm.querySelector("[data-assembly-field]").hidden = !isAssembly;
     assembly.required = isAssembly;
     assembly.disabled = !isAssembly;
+    eventForm.querySelector("[data-circuit-field]").hidden = !isAssembly;
+    eventForm.elements.circuit.disabled = !isAssembly;
     preview.textContent = "";
     if (!type.value || !startDate.value) return;
     const start = new Date(`${startDate.value}T00:00:00Z`);

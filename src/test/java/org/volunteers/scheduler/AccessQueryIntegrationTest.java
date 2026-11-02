@@ -97,7 +97,7 @@ class AccessQueryIntegrationTest {
                     long count = emf.unwrap(SessionFactory.class).getStatistics().getPrepareStatementCount();
                     System.out.printf("ACCESS_SQL role=%s large=%s partial=%s path=%s total=%d permissions=%d eventScans=%d%n",
                         role, large, partial, path.substring(path.lastIndexOf('/')), count, sql.permissionQueries(), sql.eventScans());
-                    assertThat(sql.permissionQueries()).as("one access lookup per request").isEqualTo(1);
+                    assertThat(sql.permissionQueries()).as("one access lookup per request").isEqualTo(role.equals("OWNER") ? 0 : 1);
                     assertThat(sql.eventScans()).as("no unbounded event scans for permissions").isZero();
                     long budget = path.endsWith("/schedule") ? 6 : path.equals("/events") && large ? 4 : 2;
                     assertThat(count).as(role + " " + path + " SQL budget").isLessThanOrEqualTo(budget);
@@ -120,7 +120,7 @@ class AccessQueryIntegrationTest {
         mvc.perform(request).andExpect(status().is3xxRedirection()).andExpect(flash().attributeExists("notice"));
         System.out.printf("ACCESS_WRITE save total=%d locks=%d%n", sql.statements.size(), sql.locks());
         assertThat(sql.locks()).as("save event lock").isEqualTo(1);
-        assertThat(sql.permissionQueries()).isEqualTo(1);
+        assertThat(sql.permissionQueries()).isZero();
         assertThat(sql.statements.stream().filter(statement -> statement.startsWith("select")).toList()).doesNotHaveDuplicates();
         assertThat(scheduler.volunteer(event.getId(), volunteer.getId()).getName()).isEqualTo("Updated member");
         reset();
@@ -128,7 +128,7 @@ class AccessQueryIntegrationTest {
             .andExpect(status().is3xxRedirection()).andExpect(flash().attributeExists("notice"));
         System.out.printf("ACCESS_WRITE delete total=%d locks=%d%n", sql.statements.size(), sql.locks());
         assertThat(sql.locks()).as("delete event lock").isEqualTo(1);
-        assertThat(sql.permissionQueries()).isEqualTo(1);
+        assertThat(sql.permissionQueries()).isZero();
         assertThat(sql.statements.stream().filter(statement -> statement.startsWith("select")).toList()).doesNotHaveDuplicates();
     }
 }

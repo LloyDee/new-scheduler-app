@@ -54,11 +54,11 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
     }
 
     @Test void volunteerPhoneIsFormattedAndRequiresTenDigits() {
-        for (String phone : List.of("8135160335", "813-516-0335", "(813) 516-0335")) {
+        for (String phone : List.of("2105550199", "210-555-0199", "(210) 555-0199")) {
             assertThat(service.saveVolunteer(event.getId(), volunteer.getId(), volunteerInput("phone", phone)).getPhone())
-                    .isEqualTo("(813)516-0335");
+                    .isEqualTo("(210)555-0199");
         }
-        for (String phone : List.of("813516033", "18135160335", "813ABC5160335")) {
+        for (String phone : List.of("813516033", "12105550199", "813ABC5160335")) {
             assertThatThrownBy(() -> service.saveVolunteer(event.getId(), volunteer.getId(), volunteerInput("phone", phone)))
                     .isInstanceOf(IllegalArgumentException.class).hasMessage("Enter a 10-digit phone number.");
         }
@@ -77,6 +77,46 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
         }
         assertThatThrownBy(() -> service.saveEvent(null, Map.of("type", "CIRCUIT_ASSEMBLY", "startDate", "2026-10-28")))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test void eventCircuitIsPersistedAndAvailableWhenEditing() throws Exception {
+        var result = mvc.perform(post("/events/save").with(csrf())
+                .param("type", "CIRCUIT_ASSEMBLY").param("assembly", "with Circuit Overseer")
+                .param("startDate", "2026-10-28").param("circuit", " FL-58B "))
+                .andExpect(status().is3xxRedirection()).andReturn();
+        String location = result.getResponse().getRedirectedUrl();
+        long id = Long.parseLong(location.split("/")[2]);
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(service.event(id).getCircuit()).isEqualTo("FL-58B");
+        mvc.perform(get("/events").param("edit", Long.toString(id)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("value=\"FL-58B\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Circuit: <span>FL-58B</span>")));
+        service.saveEvent(id, Map.of("type", "CIRCUIT_ASSEMBLY", "assembly", "with Circuit Overseer",
+                "startDate", "2026-10-28", "circuit", ""));
+        assertThat(service.event(id).getCircuit()).isEmpty();
+        assertThatThrownBy(() -> service.saveEvent(null, Map.of("type", "CIRCUIT_ASSEMBLY",
+                "assembly", "with Circuit Overseer", "startDate", "2026-10-30", "circuit", "x".repeat(61))))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test void regionalConventionsIgnoreCircuitAndClearItWhenChangingType() throws Exception {
+        Event assembly = service.saveEvent(null, Map.of("type", "CIRCUIT_ASSEMBLY",
+                "assembly", "with Circuit Overseer", "startDate", "2026-10-30", "circuit", "FL-58B"));
+        service.saveEvent(assembly.getId(), Map.of("type", "REGIONAL_CONVENTION",
+                "startDate", "2026-10-30", "circuit", "x".repeat(61)));
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(service.event(assembly.getId()).getCircuit()).isEmpty();
+        assertThat(service.saveEvent(null, Map.of("type", "REGIONAL_CONVENTION",
+                "startDate", "2026-10-30", "circuit", "FL-58B")).getCircuit()).isEmpty();
+        mvc.perform(get("/events").param("edit", assembly.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("data-circuit-field hidden=\"hidden\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.matchesPattern("(?s).*<input name=\"circuit\"[^>]*disabled=\"disabled\"[^>]*>.*")));
+        mvc.perform(get("/events").param("create", "true"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("data-circuit-field hidden=\"hidden\"")));
     }
 
     @Test void regionalConventionRunsFridayThroughSunday() {
@@ -122,7 +162,7 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
     @Test void aboutShowsApplicationNameAndVersion() throws Exception {
         mvc.perform(get("/settings")).andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("<h3>Scheduler Application</h3>")))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("<small class=\"app-version muted\">\u00a9 2027 v.1.67.2</small>")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("<small class=\"app-version muted\">" + new org.volunteers.scheduler.version.Version().getCopyright() + "</small>")));
     }
 
     @Test void eventsAreIsolatedForReadsWritesAssignmentsAndFilters() throws Exception {
@@ -464,7 +504,7 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
         seed.run();
         Event seeded = service.events().stream().filter(e -> "Volunteer Test Event".equals(e.getName())).findFirst().orElseThrow();
         var data = service.snapshot(seeded.getId());
-        assertThat(data.volunteers()).hasSize(101);
+        assertThat(data.volunteers()).hasSize(100);
         assertThat(data.volunteers().stream().filter(v -> v.getDepartmentRoles().size() > 1).count()).isEqualTo(10);
         for (Department d : data.departments()) {
             assertThat(data.volunteers().stream().filter(v -> v.getDepartmentRoles().get(d) == Volunteer.Role.OVERSEER).count()).isEqualTo(1);
@@ -472,7 +512,7 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
             assertThat(data.volunteers().stream().filter(v -> v.getDepartmentRoles().get(d) == Volunteer.Role.CAPTAIN).count()).isEqualTo(1);
             assertThat(data.volunteers().stream().filter(v -> v.getDepartmentRoles().get(d) == Volunteer.Role.KEY_MAN).count()).isEqualTo(1);
         }
-        assertThat(service.snapshot(event.getId()).volunteers()).hasSize(2);
+        assertThat(service.snapshot(event.getId()).volunteers()).hasSize(1);
     }
 
     @Test void volunteerCardsKeepContactsInDialogAndShowOnlyPersonalAssignments() throws Exception {

@@ -109,6 +109,7 @@ public class WebController {
             defaults.putAll(Map.of("name", e.getName(), "type", e.getType().name(), "startDate", e.getStartDate().toString(),
                     "endDate", e.getEndDate().toString(), "venue", e.getVenue()));
             defaults.put("assembly", e.getAssembly() == null ? "" : e.getAssembly());
+            defaults.put("circuit", e.getCircuit() == null ? "" : e.getCircuit());
         }
         draft(model, defaults); model.addAttribute("editId", edit);
         model.addAttribute("showEditor", create || edit != null || model.containsAttribute("error"));

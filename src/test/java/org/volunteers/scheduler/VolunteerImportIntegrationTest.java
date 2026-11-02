@@ -39,6 +39,11 @@ class VolunteerImportIntegrationTest extends ManagerAccessFixture {
     MockMultipartFile csv(String text) { return new MockMultipartFile("file", "volunteers.csv", "text/csv", text.getBytes(StandardCharsets.UTF_8)); }
     List<Volunteer> saved() { return volunteers.findByEventIdOrderByNameAscIdAsc(eventId).stream().filter(v -> !v.isEventAdministrator()).toList(); }
 
+    @Test void reservedOwnerPhoneRollsBackEntireImport() {
+        assertThatThrownBy(() -> imports.importFile(eventId, csv(HEADER + ROW + ROW.replace("Alex Rivera", "Other").replace("8135160335", "(999)555-0000"))))
+            .hasMessageContaining(OwnerIdentity.RESERVED_PHONE);
+        assertThat(saved()).isEmpty();
+    }
     @Test void csvSupportsBomQuotedNotesAndNoDepartment() {
         assertThat(imports.importFile(eventId, csv("\uFEFF" + HEADER + ROW.replace("Welcome,Volunteer", "\"Welcome, team\",")))).isEqualTo(1);
         Volunteer v = saved().getFirst();

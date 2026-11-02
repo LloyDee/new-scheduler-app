@@ -91,7 +91,7 @@ class VolunteerRoleConstraintIntegrationTest extends ManagerAccessFixture {
             sample = generated.toString();
         }
         assertThat(imports.importFile(sampleEvent, csv(sample))).isEqualTo(21);
-        assertThat(volunteers.findByEventIdOrderByNameAscIdAsc(sampleEvent)).hasSize(22)
+        assertThat(volunteers.findByEventIdOrderByNameAscIdAsc(sampleEvent)).hasSize(21)
                 .anySatisfy(v -> assertThat(v.getDepartmentRoles().values()).contains(Volunteer.Role.KEY_MAN))
                 .anySatisfy(v -> assertThat(v.getDepartmentRoles().values()).contains(Volunteer.Role.CAPTAIN));
     }

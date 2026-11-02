@@ -144,6 +144,30 @@ class PhoneLoginIntegrationTest {
         mvc.perform(post("/login").with(csrf()).param("phone", "2105550199"))
             .andExpect(redirectedUrl("/login")).andExpect(flash().attribute("error", "Phone number not found. Please sign up."));
     }
+    @Test void signupEventChoicesShowCircuitAndVenueAndRestoreSelection() throws Exception {
+        Event assembly = service.saveEvent(null, Map.of("type", "CIRCUIT_ASSEMBLY",
+                "assembly", "with Circuit Overseer", "startDate", "2027-06-05",
+                "circuit", "FL-58B", "venue", "Assembly Hall " + "LongVenue".repeat(20)));
+        event.setCircuit("LEGACY-CIRCUIT");
+        event.setVenue("Convention Center");
+        mvc.perform(get("/signup"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("<strong>" + assembly.getName() + "</strong>")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Circuit: <span>FL-58B</span>")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Venue: <span>" + assembly.getVenue() + "</span>")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Venue: <span>Convention Center</span>")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("LEGACY-CIRCUIT"))))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("type=\"radio\" name=\"eventId\" required")));
+        var result = mvc.perform(post("/signup").with(csrf())
+                .param("eventId", assembly.getId().toString()).param("name", ""))
+                .andExpect(redirectedUrl("/signup")).andReturn();
+        mvc.perform(get("/signup").flashAttrs(result.getFlashMap()))
+                .andExpect(content().string(org.hamcrest.Matchers.matchesPattern("(?s).*<input[^>]*name=\"eventId\"[^>]*value=\"" + assembly.getId() + "\"[^>]*checked=\"checked\"[^>]*>.*")));
+        event.setVenue("");
+        mvc.perform(get("/signup"))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Convention Center"))));
+    }
+
     @Test void signupRejectsGlobalDuplicateAndCannotGrantRoles() {
         Event other = service.saveEvent(null, Map.of("type", "REGIONAL_CONVENTION", "startDate", "2027-06-11"));
         assertThatThrownBy(() -> access.signup(other.getId(), profile("+1 (210) 555-0100")))

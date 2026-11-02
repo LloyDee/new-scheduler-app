@@ -28,16 +28,19 @@ public class SchedulerService {
     private final Assignments assignments;
 
     public SchedulerService(Events events, Volunteers volunteers, Departments departments,
-                            Shifts shifts, Assignments assignments) {
+                            Shifts shifts, Assignments assignments, OwnerIdentity ownerIdentity) {
         this.events = events; this.volunteers = volunteers; this.departments = departments;
-        this.shifts = shifts; this.assignments = assignments;
+        this.shifts = shifts; this.assignments = assignments; this.ownerIdentity = ownerIdentity;
     }
+
+    private final OwnerIdentity ownerIdentity;
 
     @org.springframework.beans.factory.annotation.Value("${scheduler.app-owner-phone:8135160335}")
     private String ownerPhone;
     public static final String LAST_ADMIN = "This event must retain at least one administrator. Assign another administrator before removing this one.";
     @Transactional
     public Volunteer ensureAdministrator(Event event, String phone) {
+        if (ownerIdentity.matches(phone)) return null;
         String key = PhoneAccess.normalize(phone);
         require(!key.isEmpty(), "Configure a valid App Owner phone number.");
         Volunteer member = volunteers.findByEventIdOrderByNameAscIdAsc(event.getId()).stream()
@@ -123,6 +126,7 @@ public class SchedulerService {
             name = "Circuit Assembly " + assembly;
         }
         String venue = optional(input, "venue", 240);
+        String circuit = type == Event.Type.CIRCUIT_ASSEMBLY ? optional(input, "circuit", 60) : "";
         Event e = id == null ? new Event() : event(id);
         if (id != null) {
             require(shifts.findByDepartmentEventIdOrderByDateAscStartTimeAscIdAsc(id).stream()
@@ -131,6 +135,7 @@ public class SchedulerService {
         }
         e.setName(name); e.setType(type); e.setStartDate(start); e.setEndDate(end); e.setVenue(venue);
         e.setAssembly(assembly);
+        e.setCircuit(circuit);
         Event saved = events.save(e);
         if (id == null) ensureAdministrator(saved, administratorPhone);
         return saved;
@@ -152,6 +157,7 @@ public class SchedulerService {
                 || Boolean.parseBoolean(input.get("eventAdministrator"))))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         String name = required(input, "name", 160), phone = required(input, "phone", 60);
+        ownerIdentity.requireVolunteerPhone(phone);
         require(phone.matches("[0-9() .-]+"), "Enter a 10-digit phone number.");
         String phoneDigits = phone.replaceAll("[^0-9]", "");
         require(phoneDigits.length() == 10, "Enter a 10-digit phone number.");
