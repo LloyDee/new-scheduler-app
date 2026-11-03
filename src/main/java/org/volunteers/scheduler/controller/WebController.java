@@ -188,6 +188,7 @@ public class WebController {
         Map<Long, Volunteer> dialogVolunteers = new LinkedHashMap<>();
         @SuppressWarnings("unchecked")
         List<Volunteer> visible = (List<Volunteer>) model.getAttribute("filteredVolunteers");
+        assert visible != null;
         visible.forEach(v -> dialogVolunteers.put(v.getId(), v));
         if (view != null) dialogVolunteers.put(view, snapshotVolunteer(data, view));
         model.addAttribute("dialogVolunteers", dialogVolunteers.values());
@@ -293,6 +294,7 @@ public class WebController {
         if (request.getParameter("departmentId") == null) departmentId = access.department(session, eventId);
         filter(data, departmentId, date, model);
         @SuppressWarnings("unchecked") var filteredRows = (List<SchedulerService.ShiftRow>) model.getAttribute("rows");
+        assert filteredRows != null;
         var shiftPage = page(filteredRows, page);
         model.addAttribute("listPage", shiftPage);
         model.addAttribute("rows", shiftPage.getContent());

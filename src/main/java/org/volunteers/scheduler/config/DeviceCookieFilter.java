@@ -1,5 +1,6 @@
 package org.volunteers.scheduler.config;
 
+import jakarta.annotation.Nonnull;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import java.io.IOException;
@@ -9,8 +10,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 @Component
 public class DeviceCookieFilter extends OncePerRequestFilter {
-    @Override protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-                                            FilterChain chain) throws ServletException, IOException {
+    @Override protected void doFilterInternal(HttpServletRequest request, @Nonnull HttpServletResponse response,
+                                              @Nonnull FilterChain chain) throws ServletException, IOException {
         String id = Arrays.stream(Optional.ofNullable(request.getCookies()).orElse(new Cookie[0]))
                 .filter(c -> c.getName().equals("schedulerDevice"))
                 .map(Cookie::getValue).filter(v -> v.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"))

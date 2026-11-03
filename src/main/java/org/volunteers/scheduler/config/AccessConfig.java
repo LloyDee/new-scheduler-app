@@ -1,5 +1,6 @@
 package org.volunteers.scheduler.config;
 
+import jakarta.annotation.Nonnull;
 import jakarta.servlet.http.*;
 import java.util.*;
 import java.util.regex.*;
@@ -14,7 +15,7 @@ public class AccessConfig implements WebMvcConfigurer {
     public AccessConfig(PhoneAccess access) { this.access = access; }
     @Override public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new HandlerInterceptor() {
-            @Override public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+            @Override public boolean preHandle(@Nonnull HttpServletRequest request, @Nonnull HttpServletResponse response, @Nonnull Object handler) throws Exception {
                 String path = org.springframework.web.util.UrlPathHelper.defaultInstance.getPathWithinApplication(request);
                 if (path.matches("/(login|signup|error)") || path.startsWith("/css/") || path.startsWith("/js/") || path.startsWith("/images/")) return true;
                 HttpSession session = request.getSession(false);

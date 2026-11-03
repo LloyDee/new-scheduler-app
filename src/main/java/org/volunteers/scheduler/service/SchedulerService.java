@@ -146,7 +146,7 @@ public class SchedulerService {
         return saveVolunteer(eventId, id, input, true);
     }
 
-    /** Validate changes to administrator memberships under the same lock as the write. */
+    /** Validate changes to administrator memberships under the same lock as to write. */
     @Transactional
     public Volunteer saveVolunteer(long eventId, Long id, Map<String, String> input, boolean mayAdminister) {
         Event e = events.lockForVolunteerUpdate(eventId).orElseThrow(SchedulerService::notFound);
@@ -277,7 +277,7 @@ public class SchedulerService {
                 .filter(v -> v.getDepartmentRoles().keySet().stream()
                         .anyMatch(d -> d.getId().equals(target.getDepartment().getId())))
                 .forEach(v -> eligible.add(v.getId()));
-        require(volunteerIds.stream().allMatch(eligible::contains),
+        require(eligible.containsAll(volunteerIds),
                 "One or more selected volunteers are no longer available in this department. Please choose again.");
         for (Long volunteerId : volunteerIds) assign(eventId, shiftId, volunteerId, false);
     }
@@ -299,7 +299,7 @@ public class SchedulerService {
                 .filter(v -> v.getDepartmentRoles().keySet().stream()
                         .anyMatch(d -> d.getId().equals(target.getDepartment().getId())))
                 .forEach(v -> eligible.add(v.getId()));
-        require(selected.stream().allMatch(eligible::contains),
+        require(eligible.containsAll(selected),
                 "One or more selected volunteers are no longer available in this department. Please choose again.");
         for (Long volunteerId : selected) {
             if (!currentIds.contains(volunteerId)) assign(eventId, shiftId, volunteerId, false);

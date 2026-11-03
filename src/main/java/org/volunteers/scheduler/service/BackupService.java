@@ -30,7 +30,9 @@ public class BackupService {
         "departments", List.of("id", "name", "description"),
         "volunteers", List.of("id", "name", "phone", "email", "congregation", "notes", "privilege", "departmentRoles", "eventAdministrator"),
         "shifts", List.of("id", "departmentId", "name", "date", "startTime", "endTime", "requiredCount", "notes", "volunteerIds"));
-    public static boolean supports(String type) { return HEADERS.containsKey(type); }
+    public static boolean supports(String type) {
+        return HEADERS.containsKey(type);
+    }
     @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
     public Backup capture(long eventId) {
         var data = scheduler.snapshot(eventId);
@@ -107,8 +109,8 @@ public class BackupService {
                 byte[] bytes = files.get(type);
                 if (bytes == null || bytes.length == 0) throw new IllegalArgumentException("File is required.");
                 var rows = parse(bytes);
-                if (rows.size() < 2 || rows.get(0).size() != 4 || !rows.get(0).get(0).equals("scheduler-backup")
-                    || !Set.of("1", "2").contains(rows.get(0).get(1)) || !rows.get(0).get(3).equals(type))
+                if (rows.size() < 2 || rows.getFirst().size() != 4 || !rows.getFirst().get(0).equals("scheduler-backup")
+                    || !Set.of("1", "2").contains(rows.getFirst().get(1)) || !rows.getFirst().get(3).equals(type))
                     throw new IllegalArgumentException("Unsupported backup format or wrong file category.");
                 boolean legacy = rows.get(0).get(1).equals("1");
                 List<String> expected = legacy && type.equals("volunteers") ? HEADERS.get(type).subList(0, 8) : HEADERS.get(type);
@@ -120,8 +122,8 @@ public class BackupService {
                     }
                 }
                 UUID.fromString(rows.get(0).get(2));
-                if (token != null && !token.equals(rows.get(0).get(2))) throw new IllegalArgumentException("Files must belong to the same backup snapshot.");
-                token = rows.get(0).get(2);
+                if (token != null && !token.equals(rows.getFirst().get(2))) throw new IllegalArgumentException("Files must belong to the same backup snapshot.");
+                token = rows.getFirst().get(2);
                 tables.put(type, rows.subList(2, rows.size()));
             } catch (IllegalArgumentException ex) { throw new IllegalArgumentException(type + ": " + ex.getMessage()); }
         }
@@ -146,7 +148,7 @@ public class BackupService {
                 v.getDepartmentRoles().put(reference(ds, role.getKey()), value);
             }
             if (v.isEventAdministrator() && PhoneAccess.normalize(v.getPhone()).isEmpty()) throw new IllegalArgumentException("Administrators need a valid phone number.");
-            put(vs, r.get(0), v);
+            put(vs, r.getFirst(), v);
         });
         validateRows("shifts", tables, r -> {
             Shift s = new Shift(); s.setDepartment(reference(ds, r.get(1))); s.setName(field(r.get(2), 160, true)); s.setDate(LocalDate.parse(r.get(3)));

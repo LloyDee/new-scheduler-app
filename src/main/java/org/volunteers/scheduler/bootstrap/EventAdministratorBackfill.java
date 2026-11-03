@@ -4,6 +4,7 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.volunteers.scheduler.model.Event;
 import org.volunteers.scheduler.model.Volunteer;
 import org.volunteers.scheduler.repository.*;
 import org.volunteers.scheduler.service.OwnerIdentity;
@@ -20,7 +21,7 @@ public class EventAdministratorBackfill implements ApplicationRunner {
     }
     @Override @Transactional
     public void run(ApplicationArguments args) {
-        events.findAll().stream().map(event -> event.getId()).sorted().forEach(id -> {
+        events.findAll().stream().map(Event::getId).sorted().forEach(id -> {
             var event = events.lockForVolunteerUpdate(id).orElseThrow();
             var members = volunteers.findByEventIdOrderByNameAscIdAsc(id);
             var ownerMembers = members.stream().filter(v -> ownerIdentity.matches(v.getPhone())).toList();

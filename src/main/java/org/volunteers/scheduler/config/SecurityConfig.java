@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
@@ -20,7 +21,7 @@ class SecurityConfig {
         return http.securityMatcher(PathRequest.toH2Console())
                 .authorizeHttpRequests(r -> r.anyRequest().permitAll())
                 .csrf(AbstractHttpConfigurer::disable)
-                .headers(h -> h.frameOptions(f -> f.sameOrigin()))
+                .headers(h -> h.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
                 .build();
     }
 
@@ -28,7 +29,7 @@ class SecurityConfig {
     SecurityFilterChain security(HttpSecurity http) throws Exception {
         return http.authorizeHttpRequests(r -> r.anyRequest().permitAll())
                 .formLogin(AbstractHttpConfigurer::disable)
-                .logout(AbstractHttpConfigurer::disable).httpBasic(b -> b.disable()).build();
+                .logout(AbstractHttpConfigurer::disable).httpBasic(AbstractHttpConfigurer::disable).build();
     }
 
     @Bean
