@@ -2,8 +2,11 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{shared/layout :: page('Logs', 'more', ~{::section})}">
 <body><section class="logs-page">
     <link rel="stylesheet" th:href="@{/css/logs.css}" />
-    <div class="page-heading"><div><p class="eyebrow">APPLICATION ACTIVITY</p><h1>Logs</h1><p class="muted">Signed-in users and device activity. Locations are approximate. Older visits without a recorded name are marked Before sign-in.</p></div>
+    <p><a th:href="@{/settings#administration}">Back to Settings</a></p>
+    <div class="page-heading"><div><p class="eyebrow">APPLICATION ACTIVITY</p><h1>Logs</h1><p class="muted">Signed-in users and device activity. Locations are approximate.</p></div>
     </div>
+    <p class="muted">Times shown in UTC.</p>
+    <p class="muted">Visits count activity windows of 30 minutes. Last seen updates at most once per window.</p>
         <p class="list-count" th:text="${logs.totalElements + ' logs'}"></p>
     <div class="card logs-results">
         <p th:if="${logs.empty}">No device visits recorded yet.</p>
@@ -15,8 +18,8 @@
                     <td th:text="${visit.operatingSystem ?: 'Unknown'}"></td><td th:text="${visit.deviceCategory ?: 'Unknown'}"></td>
                     <td th:text="${visit.city ?: 'Unknown'}"></td><td th:text="${visit.region ?: 'Unknown'}"></td><td th:text="${visit.country ?: 'Unknown'}"></td>
                     <td th:text="${visit.timezone ?: 'Unknown'}"></td><td th:text="${visit.language ?: 'Unknown'}"></td>
-                    <td><time th:datetime="${visit.firstSeen}" th:text="${#temporals.format(visit.firstSeen, 'MMM d, yyyy HH:mm', 'UTC')}"></time></td>
-                    <td><time th:datetime="${visit.lastSeen}" th:text="${#temporals.format(visit.lastSeen, 'MMM d, yyyy HH:mm', 'UTC')}"></time></td><td th:text="${visit.visitCount}"></td>
+                    <td><time th:datetime="${visit.firstSeen}" th:text="${#temporals.format(visit.firstSeen, 'MMM d, yyyy h:mm a', 'UTC')}"></time></td>
+                    <td><time th:datetime="${visit.lastSeen}" th:text="${#temporals.format(visit.lastSeen, 'MMM d, yyyy h:mm a', 'UTC')}"></time></td><td th:text="${visit.visitCount}"></td>
                 </tr></tbody>
             </table>
         </div>
@@ -28,7 +31,7 @@
                 </header>
                 <dl class="logs-details logs-activity">
                     <div><dt>Browser</dt><dd th:text="${visit.browser ?: 'Unknown browser'}"></dd></div>
-                    <div><dt>Last seen (UTC)</dt><dd><time th:datetime="${visit.lastSeen}" th:text="${#temporals.format(visit.lastSeen, 'MMM d, yyyy HH:mm', 'UTC')}"></time></dd></div>
+                    <div><dt>Last seen</dt><dd><time th:datetime="${visit.lastSeen}" th:text="${#temporals.format(visit.lastSeen, 'MMM d, yyyy h:mm a', 'UTC')}"></time></dd></div>
                     <div><dt>Visits</dt><dd th:text="${visit.visitCount}"></dd></div>
                 </dl>
                 <details class="logs-disclosure">
@@ -45,7 +48,7 @@
                     <div><dt>Operating system</dt><dd th:text="${visit.operatingSystem ?: 'Unknown'}"></dd></div>
                     <div><dt>Timezone</dt><dd th:text="${visit.timezone ?: 'Unknown'}"></dd></div>
                     <div><dt>Language</dt><dd th:text="${visit.language ?: 'Unknown'}"></dd></div>
-                    <div><dt>First seen (UTC)</dt><dd><time th:datetime="${visit.firstSeen}" th:text="${#temporals.format(visit.firstSeen, 'MMM d, yyyy HH:mm', 'UTC')}"></time></dd></div>
+                    <div><dt>First seen</dt><dd><time th:datetime="${visit.firstSeen}" th:text="${#temporals.format(visit.firstSeen, 'MMM d, yyyy h:mm a', 'UTC')}"></time></dd></div>
                 </dl>
                     </div>
                 </details>

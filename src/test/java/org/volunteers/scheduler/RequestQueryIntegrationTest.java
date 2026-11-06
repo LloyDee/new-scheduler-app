@@ -73,8 +73,8 @@ class RequestQueryIntegrationTest {
         mvc.perform(post(base + "/select").session(session).with(csrf())).andExpect(status().is3xxRedirection());
         assertThat(statistics.getPrepareStatementCount()).as("event selection POST").isEqualTo(2);
         statistics.clear();
-        mvc.perform(post("/settings").param("timeFormat", "24").session(session).with(csrf())).andExpect(status().is3xxRedirection());
-        assertThat(statistics.getPrepareStatementCount()).as("preferences POST").isEqualTo(1);
+        mvc.perform(get("/settings").session(session)).andExpect(status().isOk());
+        assertThat(statistics.getPrepareStatementCount()).as("settings GET").isEqualTo(2);
         var rolelessSession = new MockHttpSession();
         rolelessSession.setAttribute(PhoneAccess.SESSION, "2105550100");
         rolelessSession.setAttribute("activeEvent", otherEvent.getId());

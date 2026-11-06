@@ -3,6 +3,7 @@
     && /^\/(events(?:\/\d+\/(home|volunteers|departments|schedule|reports|more))?|settings|logs)\/?$/.test(url.pathname);
   let pending;
   let sequence = 0;
+  let pendingUrl = null;
   const status = document.createElement('p');
   status.className = 'sr-only';
   status.setAttribute('role', 'status');
@@ -12,6 +13,8 @@
   history.scrollRestoration = 'manual';
 
   async function navigate(url, push = true, scroll = null) {
+    if (push && pendingUrl === url.href) return;
+    pendingUrl = url.href;
     pending?.abort();
     pending = new AbortController();
     const current = ++sequence;
@@ -58,7 +61,10 @@
       if (current !== sequence || error.name === 'AbortError') return;
       location.assign(url.href);
     } finally {
-      if (current === sequence) document.getElementById('main')?.removeAttribute('aria-busy');
+      if (current === sequence) {
+        pendingUrl = null;
+        document.getElementById('main')?.removeAttribute('aria-busy');
+      }
     }
   }
 

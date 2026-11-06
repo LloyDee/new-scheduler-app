@@ -194,7 +194,7 @@ class PhoneLoginIntegrationTest {
                 "/schedule/1/assign", "/schedule/1/assign-batch", "/backups/restore", "/volunteers/1/delete")) {
             mvc.perform(post(base() + path).session(session()).with(csrf())).andExpect(status().isForbidden());
         }
-        for (String path : List.of("/settings/data/volunteers/import", "/settings/notifications", "/events/save"))
+        for (String path : List.of("/settings/data/volunteers/import", base() + "/announcements/broadcast", "/events/save"))
             mvc.perform(post(path).session(session()).with(csrf())).andExpect(status().isForbidden());
         mvc.perform(get(base() + "/schedule").session(session()).param("create", "true")).andExpect(status().isForbidden());
     }

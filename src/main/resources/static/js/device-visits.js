@@ -1,5 +1,15 @@
 (() => {
+const windowMs = 30 * 60 * 1000;
+let busy = false;
+let lastSuccess = 0;
+const identity = document.querySelector('meta[name="device-visits-key"]')?.content;
+const storageKey = identity ? `schedulerVisit:${identity}` : null;
 async function recordVisit() {
+  if (busy) return;
+  let saved = lastSuccess;
+  try { if (storageKey) saved = Math.max(saved, Number(localStorage.getItem(storageKey)) || 0); } catch (_) { /* Optional cache. */ }
+  if (saved > 0 && Date.now() - saved >= 0 && Date.now() - saved < windowMs) return;
+  busy = true;
   try {
     const ua = navigator.userAgent;
     const match = ua.match(/(Edg|OPR|Firefox|CriOS)\/([\d.]+)/) || ua.match(/(Chrome|Version)\/([\d.]+)/);
@@ -30,9 +40,16 @@ async function recordVisit() {
     const token = document.querySelector('meta[name="_csrf"]')?.content;
     const header = document.querySelector('meta[name="_csrf_header"]')?.content;
     const url = document.querySelector('meta[name="device-visits-url"]')?.content;
-    if (token && header && url) await fetch(url, { method: "POST", credentials: "same-origin", keepalive: true,
-      headers: { "Content-Type": "application/json", [header]: token }, body: JSON.stringify(data) });
+    if (token && header && url) {
+      const response = await fetch(url, { method: "POST", credentials: "same-origin", keepalive: true,
+        headers: { "Content-Type": "application/json", [header]: token }, body: JSON.stringify(data), signal: AbortSignal.timeout(10000) });
+      if (response.ok) {
+        lastSuccess = Date.now();
+        try { if (storageKey) localStorage.setItem(storageKey, String(lastSuccess)); } catch (_) { /* Optional cache. */ }
+      }
+    }
   } catch (_) { /* Tracking must never interrupt the application. */ }
+  finally { busy = false; }
 }
 document.addEventListener('scheduler:page', recordVisit);
 recordVisit();

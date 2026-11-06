@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{shared/layout :: page(editId == null ? 'Add a department' : 'Edit department', 'departments', ~{::section})}">
+<body>
+<section class="editor-page">
+  <div class="page-heading"><a th:href="${base + '/departments'}">Back to departments</a></div>
+  <aside class="card editor" id="editor" th:if="${showEditor}">
+          <p class="eyebrow">TEAM DETAILS</p>
+          <h2
+            th:text="${editId == null ? 'Add a department' : 'Edit department'}"
+          ></h2>
+          <form
+            class="form-stack"
+            method="post"
+            th:action="@{${base + '/departments/save'}}"
+          >
+            <input
+              th:if="${editId != null}"
+              type="hidden"
+              name="id"
+              th:value="${editId}"
+            /><label
+              >Department name
+              <input
+                name="name"
+                required
+                maxlength="160"
+                th:value="${draft['name']}"
+                placeholder="e.g. Attendants" /></label
+            ><label
+              >Description <span class="optional">optional</span
+              ><textarea
+                name="description"
+                maxlength="2000"
+                rows="4"
+                th:text="${draft['description']}"
+              ></textarea></label
+            ><button
+              th:text="${editId == null ? 'Add department' : 'Save changes'}"
+            ></button
+            ><a th:href="${base + '/departments'}"
+              >Cancel</a
+            >
+          </form>
+        </aside>
+</section>
+</body>
+</html>

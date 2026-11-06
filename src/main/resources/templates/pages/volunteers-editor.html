@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{shared/layout :: page(editId == null ? 'Add a volunteer' : 'Edit volunteer', 'volunteers', ~{::section})}">
+<body>
+<section class="editor-page">
+  <div class="page-heading"><a th:href="${base + '/volunteers'}">Back to volunteers</a></div>
+  <aside th:replace="~{shared/volunteer-editor :: editor}"></aside>
+</section>
+</body>
+</html>

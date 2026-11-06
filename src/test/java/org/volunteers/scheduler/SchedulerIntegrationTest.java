@@ -91,8 +91,8 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
         assertThat(service.event(id).getCircuit()).isEqualTo("FL-58B");
         mvc.perform(get("/events").param("edit", Long.toString(id)))
                 .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("value=\"FL-58B\"")))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Circuit: <span>FL-58B</span>")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("value=\"FL-58B\"")));
+
         service.saveEvent(id, Map.of("type", "CIRCUIT_ASSEMBLY", "assembly", "with Circuit Overseer",
                 "startDate", "2026-10-28", "circuit", ""));
         assertThat(service.event(id).getCircuit()).isEmpty();
@@ -390,11 +390,11 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("No volunteers to show")));
     }
 
-    @Test void settingsPersistsCookieAndTimeFormattingChanges() throws Exception {
-        mvc.perform(post("/settings").with(csrf()).param("timeFormat", "24"))
-                .andExpect(cookie().value("schedulerTimeFormat", "24")).andExpect(cookie().httpOnly("schedulerTimeFormat", true));
+    @Test void settingsAlwaysUsesTwelveHourTime() throws Exception {
+        mvc.perform(get("/settings")).andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Display preferences"))));
         mvc.perform(get("/events/" + event.getId() + "/schedule").cookie(new jakarta.servlet.http.Cookie("schedulerTimeFormat", "24")))
-                .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("09:00")));
+                .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("9:00 AM")));
     }
 
     @Test void volunteerDepartmentsRolesAndPrivilegePersistAndRender() throws Exception {
@@ -412,8 +412,8 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
         assertThat(saved.getDepartmentRoles().values()).containsExactlyInAnyOrder(Volunteer.Role.OVERSEER, Volunteer.Role.VOLUNTEER);
         mvc.perform(get("/events/" + event.getId() + "/volunteers?edit=" + volunteer.getId()))
                 .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Attendants Overseer")))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Parking Volunteer")))
+
+
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("value=\"ELDER\" selected")));
         service.saveVolunteer(event.getId(), volunteer.getId(), volunteerInput("name", "Alex", "privilege", "PUBLISHER", secondKey, "VOLUNTEER", "eventAdministrator", "true"));
         entityManager.flush(); entityManager.clear();
@@ -447,7 +447,7 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
         for (Long id : List.of(created.getId(), volunteer.getId())) {
             mvc.perform(get(base).param("edit", id.toString()))
                     .andExpect(status().isOk())
-                    .andExpect(content().string(org.hamcrest.Matchers.containsString("Attendants " + role.getLabel())))
+                    
                     .andExpect(content().string(org.hamcrest.Matchers.containsString("value=\"" + role.name() + "\" selected")));
         }
     }
@@ -533,7 +533,7 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
                 .doesNotContain("Other Person", "11:00", ">Edit<", ">Delete<");
         mvc.perform(get("/events/" + event.getId() + "/volunteers").param("view", volunteer.getId().toString())
                 .cookie(new jakarta.servlet.http.Cookie("schedulerTimeFormat", "24")))
-                .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("09:00")));
+                .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("9:00 AM")));
     }
 
     @Test void directVolunteerDialogWorksOutsideFilterAndRejectsOtherEvent() throws Exception {
@@ -581,8 +581,8 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
         assertThat(unassigned.getDepartmentRoles()).isEmpty();
         mvc.perform(get("/events/" + event.getId() + "/volunteers").param("edit", unassigned.getId().toString()))
                 .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("value=\"none\""))))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("No Department Yet")));
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("value=\"none\""))));
+
         mvc.perform(get("/events/" + event.getId() + "/volunteers").param("edit", volunteer.getId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("value=\"none\""))));
@@ -780,5 +780,38 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
     private Map<String, String> shiftInput(String start, String end) {
         return new HashMap<>(Map.of("name", "Morning shift", "departmentId", department.getId().toString(), "date", "2030-06-01",
                 "startTime", start, "endTime", end, "requiredCount", "1"));
+    }
+
+    @Test void addAndEditUseDedicatedFormPages() throws Exception {
+        String base = "/events/" + event.getId();
+        for (String path : List.of("/events?create=true", "/events?edit=" + event.getId(),
+                base + "/volunteers?create=true", base + "/volunteers?edit=" + volunteer.getId(),
+                base + "/departments?create=true", base + "/departments?edit=" + department.getId(),
+                base + "/schedule?create=true", base + "/schedule?edit=" + shift.getId())) {
+            for (boolean section : List.of(false, true)) {
+                var request = get(path);
+                if (section) request.header("X-Scheduler-Section", "main");
+                String html = mvc.perform(request).andExpect(status().isOk())
+                        .andReturn().getResponse().getContentAsString();
+                assertThat(html).contains("class=\"editor-page\"", "id=\"editor\"", "Cancel", "Back to ")
+                        .doesNotContain("class=\"workspace", "class=\"pagination", "#editor");
+            }
+        }
+        for (String path : List.of("/events", base + "/volunteers", base + "/departments", base + "/schedule")) {
+            String html = mvc.perform(get(path)).andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString();
+            assertThat(html).doesNotContain("id=\"editor\"", "#editor");
+        }
+    }
+
+    @Test void rejectedDepartmentCreationReturnsToDedicatedFormWithDraft() throws Exception {
+        String base = "/events/" + event.getId() + "/departments";
+        var rejected = mvc.perform(post(base + "/save").with(csrf()).param("name", "")
+                        .param("description", "Keep this description"))
+                .andExpect(redirectedUrl(base + "?create=true")).andReturn();
+        String html = mvc.perform(get(base + "?create=true").flashAttrs(rejected.getFlashMap()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(html).contains("class=\"editor-page\"", "Keep this description")
+                .doesNotContain("class=\"workspace");
     }
 }

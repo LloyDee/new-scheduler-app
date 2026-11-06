@@ -23,6 +23,7 @@ public class AccessAdvice {
         model.addAttribute("canAdminister", access.canAdminister(session, eventId));
         model.addAttribute("isAppOwner", access.isAppOwner(session));
         model.addAttribute("canManageLogsAndNotifications", access.canManageLogsAndNotifications(session, eventId));
+        model.addAttribute("canAnnounce", eventId != null && access.canManageLogsAndNotifications(session, eventId));
         model.addAttribute("canManage", access.canManage(session, eventId));
         model.addAttribute("canCreateEvent", access.canManage(session, null));
         String name = access.displayName(session);
@@ -32,6 +33,9 @@ public class AccessAdvice {
             model.addAttribute("currentVolunteerId", volunteerId);
             model.addAttribute("currentVolunteerUrl", "/events/" + eventId + "/volunteers?view=" + volunteerId);
         }
+        model.addAttribute("deviceVisitKey", java.util.UUID.nameUUIDFromBytes(
+            (session.getId() + ":" + session.getAttribute(PhoneAccess.SESSION))
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString());
         model.addAttribute("signup", false);
     }
 }

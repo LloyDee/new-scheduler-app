@@ -49,6 +49,7 @@ class AccessQueryIntegrationTest {
     @Autowired MockMvc mvc;
     @Autowired EntityManagerFactory emf;
     @Autowired SqlCapture sql;
+    @Autowired org.volunteers.scheduler.repository.DeviceVisits deviceVisits;
     final List<Long> created = new ArrayList<>();
     @AfterEach void cleanup() { for (Long id : created) scheduler.deleteEvent(id); }
     Event event() {
@@ -63,6 +64,34 @@ class AccessQueryIntegrationTest {
             "eventAdministrator", Boolean.toString(role.equals("ADMIN")), "departmentRole_" + departmentId, role.equals("ADMIN") ? "VOLUNTEER" : role));
     }
     void reset() { emf.unwrap(SessionFactory.class).getStatistics().clear(); sql.statements.clear(); }
+    @Test void populatedLogsUseBoundedQueriesWithoutSchemaChanges() throws Exception {
+        Event event = event();
+        var department = scheduler.saveDepartment(event.getId(), null, Map.of("name", "Logs access"));
+        scheduler.saveVolunteer(event.getId(), null, profile("2105550188", "OVERSEER", department.getId()));
+        var session = session("2105550188", event.getId());
+        List<String> ids = new ArrayList<>();
+        try {
+            for (int i = 0; i < 21; i++) {
+                var visit = new DeviceVisit();
+                visit.id = UUID.randomUUID().toString(); ids.add(visit.id);
+                visit.firstSeen = java.time.Instant.now(); visit.lastSeen = visit.firstSeen;
+                deviceVisits.save(visit);
+            }
+            for (boolean partial : List.of(false, true)) {
+                for (int page : List.of(0, 1, 2)) {
+                    reset();
+                    var request = get("/logs").param("page", Integer.toString(page)).session(session);
+                    if (partial) request.header("X-Scheduler-Section", "main");
+                    mvc.perform(request).andExpect(status().isOk());
+                    assertThat(sql.permissionQueries()).isEqualTo(1);
+                    assertThat(sql.statements).hasSizeLessThanOrEqualTo(3);
+                    assertThat(sql.statements.stream().filter(s -> s.contains("scheduler_device_visit") && !s.contains("count(")).count()).isEqualTo(1);
+                    assertThat(sql.statements.stream().filter(s -> s.contains("scheduler_device_visit") && s.contains("count(")).count()).isLessThanOrEqualTo(1);
+                    assertThat(sql.statements).allSatisfy(s -> assertThat(s).startsWith("select"));
+                }
+            }
+        } finally { deviceVisits.deleteAllById(ids); }
+    }
     @ParameterizedTest
     @ValueSource(strings = {"OWNER", "ADMIN", "OVERSEER", "ASSISTANT_OVERSEER", "CAPTAIN", "KEY_MAN", "VOLUNTEER"})
     void navigationQueriesAreBoundedForEveryRole(String role) throws Exception {

@@ -62,8 +62,7 @@ public class WebController {
     }
 
     @ModelAttribute
-    void common(Model model, HttpSession session, HttpServletRequest request,
-                @CookieValue(name = "schedulerTimeFormat", defaultValue = "12") String format) {
+    void common(Model model, HttpSession session, HttpServletRequest request) {
         model.addAttribute("event", null);
         Object id = session.getAttribute("activeEvent");
         String path = org.springframework.web.util.UrlPathHelper.defaultInstance.getPathWithinApplication(request);
@@ -72,8 +71,7 @@ public class WebController {
             try { model.addAttribute("event", service.event(eventId)); }
             catch (org.springframework.web.server.ResponseStatusException ex) { session.removeAttribute("activeEvent"); }
         }
-        model.addAttribute("timeFormat", "24".equals(format) ? "24" : "12");
-        model.addAttribute("timePattern", "24".equals(format) ? "HH:mm" : "h:mm a");
+        model.addAttribute("timePattern", "h:mm a");
     }
 
     @GetMapping("/")
@@ -113,7 +111,7 @@ public class WebController {
         }
         draft(model, defaults); model.addAttribute("editId", edit);
         model.addAttribute("showEditor", create || edit != null || model.containsAttribute("error"));
-        return "pages/events";
+        return Boolean.TRUE.equals(model.getAttribute("showEditor")) ? "pages/events-editor" : "pages/events";
     }
 
     @PostMapping("/events/save")
@@ -208,7 +206,7 @@ public class WebController {
         model.addAttribute("showEditor", create || edit != null || model.containsAttribute("error") && model.containsAttribute("draft"));
         model.addAttribute("volunteerRoles", java.util.Arrays.stream(Volunteer.Role.values()).filter(role -> role != Volunteer.Role.ADMIN).toList());
         model.addAttribute("volunteerPrivileges", Volunteer.Privilege.values());
-        return "pages/volunteers";
+        return Boolean.TRUE.equals(model.getAttribute("showEditor")) ? "pages/volunteers-editor" : "pages/volunteers";
     }
 
     @PostMapping("/events/{eventId}/volunteers/save")
@@ -217,7 +215,7 @@ public class WebController {
         String base = "/events/" + eventId + "/volunteers";
         return attempt(() -> { if (access.canManage(session, eventId)) access.saveManagedVolunteer(eventId, id, input, session);
             else access.saveOwn(eventId, id, input, session); return base; },
-                base + editQuery(id) + "#editor", input, flash, "Volunteer saved.");
+                base + editQuery(id), input, flash, "Volunteer saved.");
     }
 
     @PostMapping("/events/{eventId}/volunteers/{id}/delete")
@@ -267,7 +265,7 @@ public class WebController {
         }
         draft(model, defaults); model.addAttribute("editId", edit);
         model.addAttribute("showEditor", create || edit != null || model.containsAttribute("error") && model.containsAttribute("draft"));
-        return "pages/departments";
+        return Boolean.TRUE.equals(model.getAttribute("showEditor")) ? "pages/departments-editor" : "pages/departments";
     }
 
     @PostMapping("/events/{eventId}/departments/save")
@@ -275,7 +273,7 @@ public class WebController {
                           @RequestParam Map<String, String> input, RedirectAttributes flash) {
         String base = "/events/" + eventId + "/departments";
         return attempt(() -> { service.saveDepartment(eventId, id, input); return base; },
-                base + editQuery(id) + "#editor", input, flash, "Department saved.");
+                base + editQuery(id), input, flash, "Department saved.");
     }
 
     @PostMapping("/events/{eventId}/departments/{id}/delete")
@@ -327,8 +325,8 @@ public class WebController {
         draft(model, defaults); model.addAttribute("editId", edit);
         model.addAttribute("shiftTimes", java.util.stream.IntStream.rangeClosed(0, 46)
                 .mapToObj(i -> java.time.LocalTime.of(6, 0).plusMinutes(i * 15L)).toList());
-        model.addAttribute("showEditor", create || edit != null || model.containsAttribute("error") && model.containsAttribute("draft"));
-        return "pages/schedule";
+        model.addAttribute("showEditor", create || edit != null || model.containsAttribute("error") && model.containsAttribute("draft") && !model.containsAttribute("pending"));
+        return Boolean.TRUE.equals(model.getAttribute("showEditor")) ? "pages/schedule-editor" : "pages/schedule";
     }
 
     @PostMapping("/events/{eventId}/schedule/save")
@@ -336,7 +334,7 @@ public class WebController {
                      @RequestParam Map<String, String> input, RedirectAttributes flash) {
         String base = "/events/" + eventId + "/schedule";
         return attempt(() -> { service.saveShift(eventId, id, input); return base; },
-                base + editQuery(id) + "#editor", input, flash, "Shift saved.");
+                base + editQuery(id), input, flash, "Shift saved.");
     }
 
     @PostMapping("/events/{eventId}/schedule/{id}/delete")
@@ -401,15 +399,6 @@ public class WebController {
     String settings(HttpServletResponse response) {
         response.setHeader("Cache-Control", "no-store");
         return "pages/settings";
-    }
-
-    @PostMapping("/settings")
-    String settings(@RequestParam(defaultValue = "12") String timeFormat, HttpServletResponse response,
-                    RedirectAttributes flash) {
-        Cookie cookie = new Cookie("schedulerTimeFormat", "24".equals(timeFormat) ? "24" : "12");
-        cookie.setPath("/"); cookie.setHttpOnly(true); cookie.setMaxAge(365 * 24 * 60 * 60); cookie.setAttribute("SameSite", "Lax");
-        response.addCookie(cookie); flash.addFlashAttribute("notice", "Display preferences saved.");
-        return "redirect:/settings";
     }
 
     @GetMapping("/events/{eventId}/reports")
@@ -570,7 +559,7 @@ public class WebController {
         if (previous instanceof Map<?, ?> map) defaults.putAll((Map<String, String>) map);
         model.addAttribute("draft", defaults);
     }
-    private static String editQuery(Long id) { return id == null ? "" : "?edit=" + id; }
+    private static String editQuery(Long id) { return id == null ? "?create=true" : "?edit=" + id; }
     private static String attempt(Supplier<String> work, String failureUrl, Map<String, String> input,
                                   RedirectAttributes flash, String notice) {
         try { String target = work.get(); flash.addFlashAttribute("notice", notice); return "redirect:" + target; }

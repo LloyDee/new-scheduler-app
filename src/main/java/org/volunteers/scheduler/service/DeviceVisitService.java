@@ -27,6 +27,9 @@ public class DeviceVisitService {
                 created.firstSeen = Instant.now();
                 return created;
             });
+            Instant now = Instant.now();
+            // Persisted timestamps also suppress reloads and concurrent tabs.
+            if (visit.lastSeen != null && visit.lastSeen.plus(java.time.Duration.ofMinutes(30)).isAfter(now)) return;
             if (signedInName != null && !signedInName.isBlank()) visit.name = signedInName;
             visit.browser = field(data, "browser");
             visit.operatingSystem = field(data, "operatingSystem");
@@ -36,7 +39,7 @@ public class DeviceVisitService {
             if (data.get("city") != null) visit.city = field(data, "city");
             if (data.get("region") != null) visit.region = field(data, "region");
             if (data.get("country") != null) visit.country = field(data, "country");
-            visit.lastSeen = Instant.now();
+            visit.lastSeen = now;
             visit.visitCount++;
             visits.save(visit);
         });

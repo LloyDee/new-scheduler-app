@@ -82,7 +82,7 @@
                     <p class="muted" th:if="${editId == null}">Select a department and role, or choose No Department Yet. Volunteers without a department join their first assigned shift's department as a Volunteer.</p>
                     <p class="muted" th:if="${editId != null}">Select a department and role.</p>
                     <p class="muted" th:if="${departments.isEmpty()}">
-                        <a th:href="${base + '/departments?create=true#editor'}">Add a department</a> to select
+                        <a th:href="${base + '/departments?create=true'}">Add a department</a> to select
                         departments and roles<span th:if="${editId == null}">, or select No Department Yet below</span>.
                     </p>
 

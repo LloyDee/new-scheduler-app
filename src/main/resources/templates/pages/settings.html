@@ -14,28 +14,6 @@
         </div>
     </div>
     <div class="settings-grid">
-        <div class="card settings-card" id="data" th:if="${canManage}">
-            <h2>Data</h2>
-            <p class="muted">Import volunteers in bulk using a CSV or Excel file (.csv, .xls, .xlsx), up to 10 MB.</p>
-            <p th:if="${importError}" class="alert warning" role="alert" th:text="${importError}"></p>
-            <p th:if="${importNotice}" class="alert success" role="status" th:text="${importNotice}"></p>
-            <p th:if="${event == null}" class="muted">Select an event on the Events page to import volunteers.</p>
-            <th:block th:if="${event != null}">
-                <p>Import into: <strong th:text="${event.name}"></strong></p>
-                <p><a th:href="@{/settings/data/volunteers/template.csv}">Download CSV template</a></p>
-                <form class="form-stack" method="post" enctype="multipart/form-data" th:action="@{/settings/data/volunteers/import}">
-                    <label>Volunteer file<input type="file" name="file" accept=".csv,.xls,.xlsx" required /></label>
-                    <button>Import volunteers</button>
-                </form>
-            </th:block>
-            <details class="import-help">
-                <summary>File format and validation</summary>
-                <p>Required columns and values: Name, Phone, Email, Congregation, Privilege. Notes is optional. Headers can appear in any order; capitalization is ignored.</p>
-                <p>Phone must contain 10 digits. Use text cells for phone numbers in Excel to preserve leading zeros. Privilege: Elder, Ministerial Servant, or Publisher.</p>
-                <p>Optional department columns use <strong>Department: department name</strong>. Roles: Admin, Overseer, Assistant Overseer, Captain, Key Man, or Volunteer. Leave all department cells blank for No Department Yet.</p>
-                <p>Excel imports use the first worksheet. Formula and error cells are not accepted. Duplicate names or phone numbers in this event or file reject the entire import. Any invalid row rejects the entire file; no volunteers are saved.</p>
-            </details>
-        </div>
         <div class="card theme-card">
             <h2>Theme</h2>
             <p id="theme-help" class="muted">Applies immediately and saves in this browser.</p>
@@ -64,34 +42,31 @@
             </fieldset>
             <p class="theme-status muted" data-theme-status role="status" aria-live="polite"></p>
         </div>
-        <div class="card settings-card">
-            <h2>Display preferences</h2>
-            <form class="form-stack" method="post" th:action="@{/settings}">
-                <label
-                >Time format
-                    <select name="timeFormat">
-                        <option value="12" th:selected="${timeFormat == '12'}">
-                            12-hour · 2:30 PM
-                        </option>
-                        <option value="24" th:selected="${timeFormat == '24'}">
-                            24-hour · 14:30
-                        </option>
-                    </select></label
-                >
-                <p class="muted">
-                    Saved in this browser. Times use the event’s local time.
-                </p>
-                <button>Save preferences</button>
-            </form>
+        <div class="card settings-card" id="data" th:if="${canManage}">
+            <h2>Data</h2>
+            <p class="muted">Import volunteers in bulk using a CSV or Excel file (.csv, .xls, .xlsx), up to 10 MB.</p>
+            <p th:if="${importError}" class="alert warning" role="alert" th:text="${importError}"></p>
+            <p th:if="${importNotice}" class="alert success" role="status" th:text="${importNotice}"></p>
+            <p th:if="${event == null}" class="muted">Select an event on the Events page to import volunteers.</p>
+            <th:block th:if="${event != null}">
+                <p>Import into: <strong th:text="${event.name}"></strong></p>
+                <p><a th:href="@{/settings/data/volunteers/template.csv}">Download CSV template</a></p>
+                <form class="form-stack" method="post" enctype="multipart/form-data" th:action="@{/settings/data/volunteers/import}">
+                    <label>Volunteer file<input type="file" name="file" accept=".csv,.xls,.xlsx" required /></label>
+                    <button>Import volunteers</button>
+                </form>
+            </th:block>
+            <details class="import-help">
+                <summary>File format and validation</summary>
+                <p>Required columns and values: Name, Phone, Email, Congregation, Privilege. Notes is optional. Headers can appear in any order; capitalization is ignored.</p>
+                <p>Phone must contain 10 digits. Use text cells for phone numbers in Excel to preserve leading zeros. Privilege: Elder, Ministerial Servant, or Publisher.</p>
+                <p>Optional department columns use <strong>Department: department name</strong>. Roles: Admin, Overseer, Assistant Overseer, Captain, Key Man, or Volunteer. Leave all department cells blank for No Department Yet.</p>
+                <p>Excel imports use the first worksheet. Formula and error cells are not accepted. Duplicate names or phone numbers in this event or file reject the entire import. Any invalid row rejects the entire file; no volunteers are saved.</p>
+            </details>
         </div>
-        <div class="card settings-card" id="notification" th:if="${canManageLogsAndNotifications}">
-            <h2>Notification</h2>
-            <p th:if="${notificationError}" th:text="${notificationError}" role="alert"></p>
-            <form class="form-stack" method="post" th:action="@{/settings/notifications}">
-                <label>Message<textarea name="message" rows="5" maxlength="5000" required th:text="${notificationDraft}"></textarea></label>
-                <p class="muted">Send a plain-text message to everyone using the app. Up to 5,000 characters.</p>
-                <button>Send notification</button>
-            </form>
+        <div class="card settings-card" id="administration" th:if="${canManageLogsAndNotifications}">
+            <h2>Administration</h2><p class="muted">Review device and visit activity.</p>
+            <a class="button secondary" th:href="@{/logs}">View logs</a>
         </div>
         <div class="card settings-card app-card">
             <h2>App</h2>

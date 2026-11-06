@@ -1,0 +1,56 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const { readFileSync } = require('node:fs');
+const vm = require('node:vm');
+const script = readFileSync('src/main/resources/static/js/navigation.js', 'utf8');
+const tick = () => new Promise(resolve => setImmediate(resolve));
+function setup() {
+  const events = {}, windows = {}, requests = [], historyCalls = [], replacements = [], assigned = [];
+  const main = { setAttribute() {}, removeAttribute() {}, replaceWith(value) { replacements.push(value); } };
+  const nav = { replaceWith() {} };
+  const location = { href: 'https://app.test/events', origin: 'https://app.test', pathname: '/events', search: '', assign: url => assigned.push(url) };
+  const document = {
+    body: { append() {} }, createElement: () => ({ setAttribute() {} }),
+    getElementById: () => main, querySelector: () => nav,
+    addEventListener: (name, fn) => { events[name] = fn; }, dispatchEvent() {}
+  };
+  const context = {
+    URL, URLSearchParams, AbortController, AbortSignal, Event, document, location,
+    history: { state: {}, replaceState() {}, pushState: (...args) => historyCalls.push(args) }, scrollX: 0, scrollY: 0,
+    window: { addEventListener: (name, fn) => { windows[name] = fn; }, scrollTo() {} },
+    DOMParser: class { parseFromString(text) { return { getElementById: () => ({ dataset: { pageTitle: text }, focus() {} }), querySelector: () => nav }; } },
+    fetch: (url, options) => new Promise((resolve, reject) => requests.push({ url, options, resolve, reject }))
+  };
+  vm.runInNewContext(script, context);
+  const click = path => events.click({ button: 0, target: { closest: () => ({ href: `https://app.test${path}`, closest: () => true, hasAttribute: () => false }) }, preventDefault() {} });
+  const complete = (index, title) => requests[index].resolve({ ok: true, text: async () => title });
+  return { click, complete, requests, historyCalls, replacements, assigned, windows, location };
+}
+test('duplicate pending clicks issue one request; completed page can intentionally reload', async () => {
+  const ui = setup();
+  ui.click('/logs'); ui.click('/logs');
+  assert.equal(ui.requests.length, 1);
+  ui.complete(0, 'Logs'); await tick();
+  assert.equal(ui.replacements.length, 1);
+  ui.click('/logs');
+  assert.equal(ui.requests.length, 2);
+});
+test('superseded navigation aborts and ignores late responses; back navigation still loads', async () => {
+  const ui = setup();
+  ui.click('/logs'); ui.click('/settings');
+  assert.equal(ui.requests[0].options.signal.aborted, true);
+  ui.complete(1, 'Settings'); await tick();
+  ui.complete(0, 'Logs'); await tick();
+  assert.equal(ui.replacements.length, 1);
+  assert.equal(ui.replacements[0].dataset.pageTitle, 'Settings');
+  ui.windows.popstate({ state: { scroll: [0, 10] } });
+  ui.complete(2, 'Events'); await tick();
+  assert.equal(ui.historyCalls.length, 1);
+  assert.equal(ui.replacements.length, 2);
+});
+test('failed navigation falls back to full navigation', async () => {
+  const ui = setup();
+  ui.click('/logs');
+  ui.requests[0].reject(Error('offline')); await tick();
+  assert.deepEqual(ui.assigned, ['https://app.test/logs']);
+});

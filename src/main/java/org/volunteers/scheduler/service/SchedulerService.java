@@ -26,11 +26,16 @@ public class SchedulerService {
     private final Departments departments;
     private final Shifts shifts;
     private final Assignments assignments;
+    private final org.volunteers.scheduler.repository.Announcements announcements;
+    private final org.volunteers.scheduler.repository.AnnouncementRecipients announcementRecipients;
 
     public SchedulerService(Events events, Volunteers volunteers, Departments departments,
-                            Shifts shifts, Assignments assignments, OwnerIdentity ownerIdentity) {
+                            Shifts shifts, Assignments assignments, OwnerIdentity ownerIdentity,
+                            org.volunteers.scheduler.repository.Announcements announcements,
+                            org.volunteers.scheduler.repository.AnnouncementRecipients announcementRecipients) {
         this.events = events; this.volunteers = volunteers; this.departments = departments;
         this.shifts = shifts; this.assignments = assignments; this.ownerIdentity = ownerIdentity;
+        this.announcements = announcements; this.announcementRecipients = announcementRecipients;
     }
 
     private final OwnerIdentity ownerIdentity;
@@ -353,6 +358,10 @@ public class SchedulerService {
     @Transactional
     public void deleteEvent(long id) {
         Event e = events.lockForVolunteerUpdate(id).orElseThrow(SchedulerService::notFound);
+        for (var announcement : announcements.findByEventIdOrderByCreatedAtDescIdDesc(id)) {
+            announcementRecipients.deleteByAnnouncementId(announcement.id);
+            announcements.delete(announcement);
+        }
         assignments.deleteAll(assignments.findByShiftDepartmentEventIdOrderByIdAsc(id)); assignments.flush();
         shifts.deleteAll(shifts.findByDepartmentEventIdOrderByDateAscStartTimeAscIdAsc(id)); shifts.flush();
         volunteers.deleteAll(volunteers.findByEventIdOrderByNameAscIdAsc(id));

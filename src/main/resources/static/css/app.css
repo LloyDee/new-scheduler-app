@@ -1591,3 +1591,6 @@ input, select, textarea { background: var(--surface-tint); border-color: var(--b
 .signup-event-choice { display: flex; align-items: flex-start; gap: .65rem; margin-block: .75rem; }
 .signup-event-choice input[type="radio"] { flex: 0 0 auto; width: auto; min-height: 0; padding: 0; margin-top: .25rem; }
 .signup-event-details { display: grid; gap: .25rem; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+
+.editor-page { width: 100%; max-width: 48rem; margin-inline: auto; min-width: 0; }
+.editor-page > .editor { position: static; width: 100%; min-width: 0; }

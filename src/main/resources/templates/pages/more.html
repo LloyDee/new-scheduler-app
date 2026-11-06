@@ -16,11 +16,11 @@
         </div>
       </div>
       <div class="menu-grid">
-        <a th:if="${canManageLogsAndNotifications}" class="card menu-card" th:href="@{/logs}"><span class="menu-number">04</span><h2>Logs <span>&#8599;</span></h2><p>View password-protected device and visit summaries.</p></a>
+        <a th:if="${canAnnounce}" class="card menu-card" th:href="${base + '/announcements'}"><h2>Announcements</h2><p>Send department instructions and track acknowledgments.</p></a>
         <a class="card menu-card" th:href="@{/settings}"
           ><span class="menu-number">01</span>
           <h2>Settings <span>↗</span></h2>
-          <p>Choose how times appear throughout your scheduler.</p></a
+          <p>Choose a theme and access app settings.</p></a
         ><a class="card menu-card" th:href="@{/events}"
           ><span class="menu-number">02</span>
           <h2>Events <span>↗</span></h2>

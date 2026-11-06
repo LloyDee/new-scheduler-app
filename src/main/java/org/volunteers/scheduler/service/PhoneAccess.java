@@ -77,6 +77,11 @@ public class PhoneAccess {
             .anyMatch(row -> row.getEventAdministrator() || row.getRole() == Volunteer.Role.OVERSEER
                 || row.getRole() == Volunteer.Role.ASSISTANT_OVERSEER);
     }
+    public boolean canAnnounce(HttpSession session, long eventId, long departmentId) {
+        return canAdminister(session, eventId) || permissions(session).stream().anyMatch(row ->
+            Objects.equals(row.getEventId(), eventId) && Objects.equals(row.getDepartmentId(), departmentId)
+            && (row.getRole() == Volunteer.Role.OVERSEER || row.getRole() == Volunteer.Role.ASSISTANT_OVERSEER));
+    }
     public Long department(HttpSession session, long eventId) {
         return permissions(session).stream().filter(row -> row.getEventId().equals(eventId))
             .map(Volunteers.AccessRow::getDepartmentId).filter(Objects::nonNull).min(Long::compareTo).orElse(null);

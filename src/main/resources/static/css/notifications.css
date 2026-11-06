@@ -12,5 +12,7 @@
 .notification-message { border-top: 1px solid var(--border); padding: 16px 0; }
 .notification-message p { white-space: pre-wrap; margin-bottom: 0; }
 .notification-message time { font-size: .85rem; color: var(--muted); }
+.card.notification-message { padding: 20px; margin-bottom: 16px; overflow-wrap: anywhere; }
+.notification-message button { margin-top: 16px; }
 .notification-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; }
 @media print { .notification-bell, .notification-dialog { display: none !important; } }

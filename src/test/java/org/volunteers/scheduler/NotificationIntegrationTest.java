@@ -25,32 +25,37 @@ class NotificationIntegrationTest extends ManagerAccessFixture {
     @Autowired AnnouncementReads reads;
     @BeforeEach void clear() { reads.deleteAll(); announcements.deleteAll(); }
 
-    @Test void settingsAllowsSendingWithoutPasswordAndValidatesMessages() throws Exception {
+    @Test void announcementsAllowsOwnerBroadcastsAndValidatesMessages() throws Exception {
+        org.mockito.Mockito.when(phoneAccess.isAppOwner(org.mockito.ArgumentMatchers.any())).thenReturn(true);
+        long eventId = accessScheduler.saveEvent(null, java.util.Map.of("name", "Broadcast event", "type", "REGIONAL_CONVENTION", "startDate", "2030-01-01", "endDate", "2030-01-01")).getId();
+        String page = "/events/" + eventId + "/announcements";
         MockHttpSession session = new MockHttpSession();
-        mvc.perform(get("/settings").session(session)).andExpect(status().isOk())
+        mvc.perform(get(page).session(session)).andExpect(status().isOk())
                 .andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(content().string(containsString("notification-bell")))
-                .andExpect(content().string(containsString("Send notification</button>")))
+                .andExpect(content().string(containsString("Send all-app broadcast</button>")))
                 .andExpect(content().string(not(containsString("Unlock Notification"))))
                 .andExpect(content().string(not(containsString("Lock Notification"))));
         for (String invalid : new String[]{"  ", "x".repeat(5001)}) {
-            mvc.perform(post("/settings/notifications").session(session).with(csrf()).param("message", invalid))
+            mvc.perform(post(page + "/broadcast").session(session).with(csrf()).param("message", invalid))
                     .andExpect(flash().attribute("notificationDraft", invalid));
         }
-        mvc.perform(post("/settings/notifications").session(session).param("message", "No CSRF"))
+        mvc.perform(post(page + "/broadcast").session(session).param("message", "No CSRF"))
                 .andExpect(status().isForbidden());
-        mvc.perform(post("/settings/notifications").session(session).with(csrf()).param("message", "Hello\n<script>alert(1)</script>"))
+        mvc.perform(post(page + "/broadcast").session(session).with(csrf()).param("message", "Hello\n<script>alert(1)</script>"))
                 .andExpect(flash().attribute("notice", "Notification sent."));
         assertThat(announcements.count()).isEqualTo(1);
     }
 
     @Test void usersWithoutNotificationAccessCannotSeeComposerOrSend() throws Exception {
+        long eventId = accessScheduler.saveEvent(null, java.util.Map.of("type", "REGIONAL_CONVENTION", "startDate", "2031-01-01")).getId();
+        String page = "/events/" + eventId + "/announcements";
         org.mockito.Mockito.when(phoneAccess.canManageLogsAndNotifications(
                 org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(false);
         MockHttpSession session = new MockHttpSession();
-        mvc.perform(get("/settings").session(session)).andExpect(status().isOk())
-                .andExpect(content().string(not(containsString("Send notification</button>"))));
-        mvc.perform(post("/settings/notifications").session(session).with(csrf()).param("message", "Blocked"))
+        mvc.perform(get(page).session(session)).andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("Send all-app broadcast</button>"))));
+        mvc.perform(post(page + "/broadcast").session(session).with(csrf()).param("message", "Blocked"))
                 .andExpect(status().isForbidden());
         assertThat(announcements.count()).isZero();
     }

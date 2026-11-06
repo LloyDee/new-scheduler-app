@@ -177,14 +177,27 @@ class OwnershipIntegrationTest {
             .andExpect(model().attribute("canManageLogsAndNotifications", allowed)).andReturn().getResponse().getContentAsString();
         String more = mvc.perform(get("/events/" + event.getId() + "/more").session(session)).andExpect(status().isOk())
             .andReturn().getResponse().getContentAsString();
-        assertThat(settings.contains("id=\"notification\"")).isEqualTo(allowed);
+        assertThat(settings.contains("id=\"administration\"")).isEqualTo(allowed);
+        assertThat(more.contains("/announcements\"")).isEqualTo(allowed);
+        for (String path : List.of("/settings", "/events/" + event.getId() + "/home")) {
+            for (boolean section : List.of(false, true)) {
+                var request = get(path).session(session);
+                if (section) request.header("X-Scheduler-Section", "main");
+                var response = mvc.perform(request).andExpect(status().isOk());
+                var announcementLink = response.andReturn().getResponse().getContentAsString();
+                String dropdown = announcementLink.substring(announcementLink.indexOf("id=\"more-menu\""));
+                assertThat(dropdown.contains("href=\"/events/" + event.getId() + "/announcements\""))
+                    .as("Announcements dropdown link for %s on %s (partial=%s)", role, path, section)
+                    .isEqualTo(allowed);
+            }
+        }
         assertThat(settings.contains("href=\"/logs\"")).isEqualTo(allowed);
-        assertThat(more.contains("href=\"/logs\"")).isEqualTo(allowed);
+        assertThat(more.contains("href=\"/logs\"")).isFalse();
         mvc.perform(get("/logs").session(session)).andExpect(status().is(allowed ? 200 : 403));
         // An old unlocked session must not bypass the role restriction.
         session.setAttribute("notificationUnlocked", true);
-        mvc.perform(post("/settings/notifications").session(session).with(csrf()).param("message", " "))
-            .andExpect(status().is(allowed ? 302 : 403));
+        mvc.perform(post("/events/" + event.getId() + "/announcements/broadcast").session(session).with(csrf()).param("message", " "))
+            .andExpect(status().isForbidden());
         // Receiving and acknowledging notifications remains available to every role.
         mvc.perform(get("/api/notifications/count").session(session)).andExpect(status().isOk());
         mvc.perform(get("/api/notifications").session(session)).andExpect(status().isOk());
@@ -206,10 +219,10 @@ class OwnershipIntegrationTest {
         scheduler.saveVolunteer(other.getId(), null, otherInput);
         mvc.perform(post("/events/" + other.getId() + "/select").session(session).with(csrf())).andExpect(status().is3xxRedirection());
         mvc.perform(get("/settings").session(session)).andExpect(model().attribute("canManageLogsAndNotifications", false))
-            .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("id=\"notification\""))));
+            .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("id=\"administration\""))));
         mvc.perform(get("/logs").session(session)).andExpect(status().isForbidden());
         for (String suffix : List.of("")) {
-            mvc.perform(post("/settings/notifications" + suffix).session(session).with(csrf()).param("message", "Blocked").param("password", "snow"))
+            mvc.perform(post("/events/" + other.getId() + "/announcements/broadcast" + suffix).session(session).with(csrf()).param("message", "Blocked").param("password", "snow"))
                 .andExpect(status().isForbidden());
         }
         mvc.perform(post("/events/" + event.getId() + "/select").session(session).with(csrf())).andExpect(status().is3xxRedirection());
@@ -221,10 +234,13 @@ class OwnershipIntegrationTest {
         var session = session("8135160335");
         mvc.perform(get("/settings").session(session)).andExpect(status().isOk())
             .andExpect(model().attribute("canManageLogsAndNotifications", true))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("id=\"notification\"")));
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("id=\"administration\"")));
         mvc.perform(get("/logs").session(session)).andExpect(status().isOk());
-        mvc.perform(post("/settings/notifications").session(session).with(csrf()).param("message", "Owner announcement"))
-            .andExpect(redirectedUrl("/settings#notification"));
+        var broadcastEvent = createEvent();
+        mvc.perform(get("/events/" + broadcastEvent.getId() + "/announcements").session(session))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("id=\"broadcast\"")));
+        mvc.perform(post("/events/" + broadcastEvent.getId() + "/announcements/broadcast").session(session).with(csrf()).param("message", "Owner announcement"))
+            .andExpect(redirectedUrl("/events/" + broadcastEvent.getId() + "/announcements#broadcast"));
 
     }
     @org.junit.jupiter.params.ParameterizedTest

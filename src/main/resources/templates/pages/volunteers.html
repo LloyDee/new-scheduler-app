@@ -8,7 +8,7 @@
 <section class="volunteers-page">
     <link rel="stylesheet" th:href="@{/css/volunteers.css}"/>
     <div class="page-heading" th:if="${canManage}">
-        <a class="button" th:href="${base + '/volunteers?create=true#editor'}">+ Add Volunteers</a>
+        <a class="button" th:href="${base + '/volunteers?create=true'}">+ Add Volunteers</a>
     </div>
     <dialog class="volunteer-dialog" th:each="v : ${dialogVolunteers}" th:id="${'volunteer-dialog-' + v.id}"
             th:attr="aria-labelledby=${'volunteer-title-' + v.id},data-open-on-load=${openVolunteerId == v.id}">
@@ -120,7 +120,7 @@
             <button autofocus>Close</button>
         </form>
     </dialog>
-    <div class="workspace" th:classappend="${!showEditor ? 'list-only' : ''}">
+    <div class="workspace list-only">
         <div class="stack volunteer-list">
             <form
                     class="filter-bar"
@@ -192,7 +192,7 @@
                 <div class="card-actions">
                     <a th:href="@{${base + '/volunteers'}(assignments=${v.id},departmentId=${departmentId},q=${q})} + '#volunteer-assignments'">Assignments
                         →</a>
-                    <a th:if="${(canManage and (!v.eventAdministrator or canAdminister)) or ownVolunteerIds.contains(v.id)}" th:href="@{${base + '/volunteers'}(edit=${v.id})} + '#editor'"
+                    <a th:if="${(canManage and (!v.eventAdministrator or canAdminister)) or ownVolunteerIds.contains(v.id)}" th:href="@{${base + '/volunteers'}(edit=${v.id})}"
                     >Edit</a
                     >
                     <form th:if="${canManage and (!v.eventAdministrator or canAdminister)}"
@@ -207,7 +207,7 @@
             <nav th:replace="~{shared/fragments :: pagination(${listPage}, @{${base + '/volunteers'}(page=${listPage.number - 1},departmentId=${departmentId},q=${q})}, @{${base + '/volunteers'}(page=${listPage.number + 1},departmentId=${departmentId},q=${q})})}"></nav>
             </div>
         </div>
-        <aside th:replace="~{shared/volunteer-editor :: editor}"></aside>
+        
     </div>
 </section>
 </body>
