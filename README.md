@@ -1,6 +1,6 @@
-# Gather · Volunteer Scheduler
+# New Scheduler App
 
-A mobile-friendly, server-rendered scheduler for Regional Conventions and Circuit Assemblies. Built with Java 21, Spring Boot, Gradle (Groovy DSL), Thymeleaf, Spring Data JPA, and H2.
+A mobile-friendly, server-rendered scheduler for Regional Conventions and Circuit Assemblies. Built with Java 21, Spring Boot, Gradle (Groovy DSL), Thymeleaf, Spring Data JPA, and H2/PostgreSQL.
 
 ## Run
 
@@ -15,7 +15,7 @@ On macOS/Linux, use `./gradlew bootRun` (or `sh gradlew bootRun`). Open **http:/
 ```powershell
 .\gradlew.bat test
 .\gradlew.bat bootJar
-java -jar build/libs/volunteer-scheduler-0.1.0.jar
+java -jar build/libs/new-scheduler-app-0.1.0.jar
 ```
 
 Tests use an isolated in-memory database. To add test data to H2, run `.\gradlew.bat bootRun --args="--scheduler.seed-test-data=true"`. This creates a separate Volunteer Test Event with 100 volunteers (10 in multiple departments), five departments, and one Overseer plus two Assistant Overseers per department. Repeating the command skips the existing sample event.
