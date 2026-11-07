@@ -2,34 +2,34 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{shared/layout :: page('Logs', 'more', ~{::section})}">
 <body><section class="logs-page">
     <link rel="stylesheet" th:href="@{/css/logs.css}" />
-    <p><a th:href="@{/settings#administration}">Back to Settings</a></p>
     <div class="page-heading"><div><p class="eyebrow">APPLICATION ACTIVITY</p><h1>Logs</h1><p class="muted">Signed-in users and device activity. Locations are approximate.</p></div>
     </div>
         <p class="list-count" th:text="${logs.totalElements + ' logs'}"></p>
     <div class="card logs-results">
         <p th:if="${logs.empty}">No device visits recorded yet.</p>
         <div class="logs-table" th:unless="${logs.empty}">
-            <table><caption>Device visits — times shown in UTC</caption>
+            <table><caption>Device visits — times shown in <span data-logs-timezone>UTC</span></caption>
                 <thead><tr><th>Name</th><th>Browser</th><th>Operating system</th><th>Device</th><th>City</th><th>State / Region</th><th>Country</th><th>Timezone</th><th>Language</th><th>First seen</th><th>Last seen</th><th>Visits</th></tr></thead>
                 <tbody><tr th:each="visit : ${logs.content}">
-                    <td th:text="${visit.name ?: 'Before sign-in'}"></td><td th:text="${visit.browser ?: 'Unknown'}"></td>
+                    <td th:text="${visit.name ?: 'Anonymous'}"></td><td th:text="${visit.browser ?: 'Unknown'}"></td>
                     <td th:text="${visit.operatingSystem ?: 'Unknown'}"></td><td th:text="${visit.deviceCategory ?: 'Unknown'}"></td>
                     <td th:text="${visit.city ?: 'Unknown'}"></td><td th:text="${visit.region ?: 'Unknown'}"></td><td th:text="${visit.country ?: 'Unknown'}"></td>
                     <td th:text="${visit.timezone ?: 'Unknown'}"></td><td th:text="${visit.language ?: 'Unknown'}"></td>
-                    <td><time th:datetime="${visit.firstSeen}" th:text="${#temporals.format(visit.firstSeen, 'MMM d, yyyy h:mm a', 'UTC')}"></time></td>
-                    <td><time th:datetime="${visit.lastSeen}" th:text="${#temporals.format(visit.lastSeen, 'MMM d, yyyy h:mm a', 'UTC')}"></time></td><td th:text="${visit.visitCount}"></td>
+                    <td><time data-log-time th:datetime="${visit.firstSeen}" th:text="${#temporals.format(visit.firstSeen, 'MMM d, yyyy h:mm a ''UTC''', 'UTC')}"></time></td>
+                    <td><time data-log-time th:datetime="${visit.lastSeen}" th:text="${#temporals.format(visit.lastSeen, 'MMM d, yyyy h:mm a ''UTC''', 'UTC')}"></time></td><td th:text="${visit.visitCount}"></td>
                 </tr></tbody>
             </table>
         </div>
         <div class="logs-cards" th:unless="${logs.empty}">
+            <p class="muted">Times shown in <span data-logs-timezone>UTC</span>.</p>
             <article class="logs-device" th:each="visit : ${logs.content}" aria-label="Device summary">
                 <header class="logs-device-heading">
-                    <h2 th:text="${visit.name ?: 'Before sign-in'}"></h2>
+                    <h2 th:text="${visit.name ?: 'Anonymous'}"></h2>
                     <span class="logs-device-type" th:text="${visit.deviceCategory ?: 'Unknown device'}"></span>
                 </header>
                 <dl class="logs-details logs-activity">
                     <div><dt>Browser</dt><dd th:text="${visit.browser ?: 'Unknown browser'}"></dd></div>
-                    <div><dt>Last seen</dt><dd><time th:datetime="${visit.lastSeen}" th:text="${#temporals.format(visit.lastSeen, 'MMM d, yyyy h:mm a', 'UTC')}"></time></dd></div>
+                    <div><dt>Last seen</dt><dd><time data-log-time th:datetime="${visit.lastSeen}" th:text="${#temporals.format(visit.lastSeen, 'MMM d, yyyy h:mm a ''UTC''', 'UTC')}"></time></dd></div>
                     <div><dt>Visits</dt><dd th:text="${visit.visitCount}"></dd></div>
                 </dl>
                 <details class="logs-disclosure">
@@ -46,7 +46,7 @@
                     <div><dt>Operating system</dt><dd th:text="${visit.operatingSystem ?: 'Unknown'}"></dd></div>
                     <div><dt>Timezone</dt><dd th:text="${visit.timezone ?: 'Unknown'}"></dd></div>
                     <div><dt>Language</dt><dd th:text="${visit.language ?: 'Unknown'}"></dd></div>
-                    <div><dt>First seen</dt><dd><time th:datetime="${visit.firstSeen}" th:text="${#temporals.format(visit.firstSeen, 'MMM d, yyyy h:mm a', 'UTC')}"></time></dd></div>
+                    <div><dt>First seen</dt><dd><time data-log-time th:datetime="${visit.firstSeen}" th:text="${#temporals.format(visit.firstSeen, 'MMM d, yyyy h:mm a ''UTC''', 'UTC')}"></time></dd></div>
                 </dl>
                     </div>
                 </details>

@@ -33,7 +33,7 @@ class NotificationIntegrationTest extends ManagerAccessFixture {
         mvc.perform(get(page).session(session)).andExpect(status().isOk())
                 .andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(content().string(containsString("notification-bell")))
-                .andExpect(content().string(containsString("Send all-app broadcast</button>")))
+                .andExpect(content().string(containsString("Send Admin Notification</button>")))
                 .andExpect(content().string(not(containsString("Unlock Notification"))))
                 .andExpect(content().string(not(containsString("Lock Notification"))));
         for (String invalid : new String[]{"  ", "x".repeat(5001)}) {
@@ -54,7 +54,7 @@ class NotificationIntegrationTest extends ManagerAccessFixture {
                 org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(false);
         MockHttpSession session = new MockHttpSession();
         mvc.perform(get(page).session(session)).andExpect(status().isOk())
-                .andExpect(content().string(not(containsString("Send all-app broadcast</button>"))));
+                .andExpect(content().string(not(containsString("Send Admin Notification</button>"))));
         mvc.perform(post(page + "/broadcast").session(session).with(csrf()).param("message", "Blocked"))
                 .andExpect(status().isForbidden());
         assertThat(announcements.count()).isZero();

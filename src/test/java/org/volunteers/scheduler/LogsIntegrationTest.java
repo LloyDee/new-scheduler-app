@@ -111,7 +111,7 @@ class LogsIntegrationTest extends ManagerAccessFixture {
             .andExpect(content().string(org.hamcrest.Matchers.containsString("Page 3 of 3")))
             .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString(">Next</a>"))));
     }
-    @Test void newestActivityComesFirstAndPageHasPlainBackLinkWithoutFilters() throws Exception {
+    @Test void newestActivityComesFirstAndPageHasNoBackLinkOrFilters() throws Exception {
         for (int i = 0; i < 12; i++) {
             var visit = new org.volunteers.scheduler.model.DeviceVisit();
             visit.id = "device-" + i; visit.name = "Alex";
@@ -120,13 +120,15 @@ class LogsIntegrationTest extends ManagerAccessFixture {
         }
         var result = mvc.perform(get("/logs"))
             .andExpect(status().isOk())
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("href=\"/settings#administration\">Back to Settings</a>")))
+            .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Back to Settings"))))
             .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Times shown in UTC."))))
             .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Visits count activity windows"))))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("12:00 AM")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("12:00 AM UTC")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("data-log-time datetime=\"2030-01-01T00:00:11Z\"")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("data-logs-timezone>UTC</span>")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("/js/logs.js")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("href=\"/logs?page=1\"")))
             .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("logs-filters"))))
-            .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("? Back to Settings"))))
             .andReturn();
         var logs = (org.springframework.data.domain.Page<?>) result.getModelAndView().getModel().get("logs");
         assertThat(logs.getTotalElements()).isEqualTo(12);

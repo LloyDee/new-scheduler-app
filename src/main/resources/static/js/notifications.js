@@ -70,7 +70,7 @@
           article.className = 'notification-message';
           if (item.title || item.scope === 'GLOBAL') {
             const heading = document.createElement('h3');
-            heading.textContent = item.title ? `${item.departmentName || 'All-app broadcast'} — ${item.title}` : 'All-app broadcast';
+            heading.textContent = item.title ? `${item.departmentName || 'Admin Notification:'} — ${item.title}` : 'Admin Notification:';
             article.append(heading);
           }
           const time = document.createElement('time');

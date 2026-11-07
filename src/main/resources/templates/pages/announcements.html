@@ -3,12 +3,12 @@
 <body><section>
   <div class="page-heading"><div><p class="eyebrow" th:text="${event.name}"></p><h1>Announcements</h1><p>Share instructions and schedule updates with your department.</p></div></div>
   <article class="card" id="broadcast" th:if="${isAppOwner}">
-    <h2>All-app broadcast</h2>
+    <h2>Admin Notification:</h2>
     <p th:if="${notificationError}" th:text="${notificationError}" role="alert"></p>
     <form class="form-stack" method="post" th:action="${base + '/announcements/broadcast'}">
       <label>Message<textarea name="message" rows="5" maxlength="5000" required th:text="${notificationDraft}"></textarea></label>
       <p class="muted">Send a plain-text message to everyone using the app. Up to 5,000 characters.</p>
-      <button>Send all-app broadcast</button>
+      <button>Send Admin Notification</button>
     </form>
   </article>
   <article class="card" th:if="${!announcementDepartments.isEmpty()}">
