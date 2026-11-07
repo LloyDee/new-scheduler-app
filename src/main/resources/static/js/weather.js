@@ -24,6 +24,18 @@ if (weatherCard) {
     return ['☁', 'Current weather'];
   };
 
+  const sceneFor = code => {
+    if ([0, 1].includes(code)) return 'clear';
+    if (code === 2) return 'partly';
+    if (code === 3) return 'cloudy';
+    if ([45, 48].includes(code)) return 'fog';
+    if ([51, 53, 55, 56, 57].includes(code)) return 'drizzle';
+    if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return 'rain';
+    if ([71, 73, 75, 77, 85, 86].includes(code)) return 'snow';
+    if ([95, 96, 99].includes(code)) return 'storm';
+    return 'neutral';
+  };
+
   async function loadWeather() {
     if (loading) return;
     loading = true;
@@ -58,8 +70,10 @@ if (weatherCard) {
       if (!current || !Number.isFinite(current.temperature_2m) || !Number.isFinite(current.time)) {
         throw new Error('Weather data unavailable');
       }
-      const [icon, description] = conditions(current.weather_code, current.is_day);
-      field('icon').textContent = icon;
+      const [, description] = conditions(current.weather_code, current.is_day);
+      weatherCard.setAttribute('data-weather-scene', sceneFor(current.weather_code));
+      weatherCard.setAttribute('data-weather-day', current.is_day === 0 ? 'night' : 'day');
+      weatherCard.setAttribute('data-weather-heavy', String([65, 67, 75, 82, 86, 95, 96, 99].includes(current.weather_code)));
       field('temperature').textContent = rounded(current.temperature_2m);
       field('condition').textContent = description;
       field('feels').textContent = rounded(current.apparent_temperature, '°');
@@ -85,6 +99,7 @@ if (weatherCard) {
   loadWeather();
   const timer = setInterval(loadWeather, interval);
   const onVisible = () => {
+    weatherCard.setAttribute('data-weather-paused', String(document.hidden));
     if (!document.hidden && Date.now() - lastAttempt >= interval) loadWeather();
   };
   document.addEventListener('visibilitychange', onVisible);
