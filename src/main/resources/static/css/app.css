@@ -1027,6 +1027,62 @@ textarea {
     font-size: .85rem
 }
 
+.coverage-list, .coverage-card, .coverage-title {
+    min-width: 0;
+}
+
+.coverage-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+}
+
+.coverage-title {
+    flex: 1 1 180px;
+    overflow-wrap: anywhere;
+}
+
+.coverage-title h3 {
+    margin-bottom: 4px;
+}
+
+.coverage-heading .badge {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.coverage-when {
+    margin: 10px 0 16px;
+    color: var(--muted);
+    font-size: .8rem;
+    overflow-wrap: anywhere;
+}
+
+.coverage-counts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+}
+
+.coverage-counts dt {
+    color: var(--muted);
+    font-size: .8rem;
+    overflow-wrap: anywhere;
+}
+
+.coverage-counts dd {
+    margin: 2px 0 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
 .table-wrap {
     overflow-x: auto;
     padding: 0

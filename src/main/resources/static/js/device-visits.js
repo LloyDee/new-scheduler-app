@@ -1,5 +1,5 @@
 (() => {
-const windowMs = 30 * 60 * 1000;
+const windowMs = 3 * 60 * 1000;
 let busy = false;
 let lastSuccess = 0;
 const identity = document.querySelector('meta[name="device-visits-key"]')?.content;

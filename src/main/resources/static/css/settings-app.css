@@ -47,6 +47,32 @@
     line-height: 1.65;
 }
 
+.app-policy-contact {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-style: normal;
+    max-width: 100%;
+    font-size: 13px;
+    line-height: 1.25;
+    text-align: right;
+}
+
+.app-policy-signoff {
+    margin-bottom: 8px;
+    font-family: "Segoe Script", "Brush Script MT", cursive;
+    font-size: 22px;
+}
+
+.app-policy-name {
+    font-size: 18px;
+    font-weight: 700;
+}
+
 .app-about-logo {
     display: block;
     width: 88px;
@@ -59,10 +85,9 @@
     text-align: center;
 }
 
-#about-dialog hr {
-    border: 0;
-    border-top: 1px solid var(--border);
-    margin: 20px 0;
+#about-dialog .app-policy-contact {
+    align-items: center;
+    text-align: center;
 }
 
 #about-dialog .app-dialog-footer {

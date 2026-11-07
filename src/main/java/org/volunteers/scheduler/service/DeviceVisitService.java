@@ -29,7 +29,7 @@ public class DeviceVisitService {
             });
             Instant now = Instant.now();
             // Persisted timestamps also suppress reloads and concurrent tabs.
-            if (visit.lastSeen != null && visit.lastSeen.plus(java.time.Duration.ofMinutes(30)).isAfter(now)) return;
+            if (visit.lastSeen != null && visit.lastSeen.plus(java.time.Duration.ofMinutes(3)).isAfter(now)) return;
             if (signedInName != null && !signedInName.isBlank()) visit.name = signedInName;
             visit.browser = field(data, "browser");
             visit.operatingSystem = field(data, "operatingSystem");

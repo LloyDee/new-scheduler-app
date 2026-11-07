@@ -92,7 +92,10 @@ test('page clicks, reloads and other tabs reuse successful activity; people have
   const other = tracker({ storage, identity: 'sam' });
   await settle();
   assert.ok(other.state.requests.includes('/api/device-visits'));
-  first.advance(1800000);
+  first.advance(179999);
+  await first.events['scheduler:page']();
+  assert.equal(first.state.requests.filter(url => url === '/api/device-visits').length, 1);
+  first.advance(1);
   await first.events['scheduler:page']();
   assert.equal(first.state.requests.filter(url => url === '/api/device-visits').length, 2);
 });

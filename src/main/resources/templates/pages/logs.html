@@ -5,8 +5,6 @@
     <p><a th:href="@{/settings#administration}">Back to Settings</a></p>
     <div class="page-heading"><div><p class="eyebrow">APPLICATION ACTIVITY</p><h1>Logs</h1><p class="muted">Signed-in users and device activity. Locations are approximate.</p></div>
     </div>
-    <p class="muted">Times shown in UTC.</p>
-    <p class="muted">Visits count activity windows of 30 minutes. Last seen updates at most once per window.</p>
         <p class="list-count" th:text="${logs.totalElements + ' logs'}"></p>
     <div class="card logs-results">
         <p th:if="${logs.empty}">No device visits recorded yet.</p>

@@ -121,55 +121,25 @@
           </div>
         </article>
       </div>
-      <p class="table-scroll-hint no-print" th:if="${reportType == 'coverage'}" id="coverage-scroll-hint">
-        Swipe left or right on the table to see all staffing details.
-      </p>
-      <div class="card table-wrap" th:if="${reportType == 'coverage'}"
-           role="region" aria-label="Staffing coverage" tabindex="0">
-        <table>
-          <caption class="sr-only">
-            Staffing coverage by shift
-          </caption>
-          <thead>
-            <tr>
-              <th scope="col">Department / shift</th>
-              <th scope="col">Required</th>
-              <th scope="col">Assigned</th>
-              <th scope="col">Missing</th>
-              <th scope="col">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr th:each="row : ${rows}">
-              <td>
-                <strong th:text="${row.shift.name + ' — ' + row.shift.department.name}"></strong
-                ><small th:text="${row.shift.date}"></small
-                ><small
-                  ><span
-                    th:text="${#temporals.format(row.shift.startTime, timePattern)}"
-                  ></span>
-                  –
-                  <span
-                    th:text="${#temporals.format(row.shift.endTime, timePattern)}"
-                  ></span
-                ></small>
-              </td>
-              <td th:text="${row.shift.requiredCount}"></td>
-              <td th:text="${row.assignments.size()}"></td>
-              <td th:text="${row.missing}"></td>
-              <td>
-                <span
-                  class="badge"
-                  th:classappend="${row.statusClass}"
-                  th:text="${row.status}"
-                ></span>
-              </td>
-            </tr>
-            <tr th:if="${rows.isEmpty()}">
-              <td colspan="5">No shifts match this report.</td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="stack coverage-list" th:if="${reportType == 'coverage'}">
+        <div class="card empty" th:if="${rows.isEmpty()}"><p>No shifts match this report.</p></div>
+        <article class="card coverage-card" th:each="row : ${rows}">
+          <div class="coverage-heading">
+            <div class="coverage-title">
+              <h3 th:text="${row.shift.name}"></h3>
+            </div>
+            <span class="badge" th:classappend="${row.statusClass}" th:text="${row.status}"></span>
+          </div>
+          <p class="coverage-when">
+            <strong th:text="${row.shift.department.name + ':'}"></strong>
+            <span th:text="${#temporals.format(row.shift.date, 'MM/dd/yy') + ' | ' + #temporals.format(row.shift.startTime, timePattern) + ' – ' + #temporals.format(row.shift.endTime, timePattern)}"></span>
+          </p>
+          <dl class="coverage-counts">
+            <div><dt>Required</dt><dd th:text="${row.shift.requiredCount}"></dd></div>
+            <div><dt>Assigned</dt><dd th:text="${row.assignments.size()}"></dd></div>
+            <div><dt>Missing</dt><dd th:text="${row.missing}"></dd></div>
+          </dl>
+        </article>
       </div>
       <details th:if="${canAdminister}" class="card no-print">
         <summary>Restore event from CSV backup</summary>

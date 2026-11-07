@@ -67,11 +67,24 @@ class LogsIntegrationTest extends ManagerAccessFixture {
         assertThat(visits.findById(id).orElseThrow().visitCount).isEqualTo(1);
     }
 
+    @Test void activityWithinThreeMinutesPreservesCountAndLastSeen() {
+        String id = UUID.randomUUID().toString();
+        service.record(id, Map.of(), "Alex");
+        var visit = visits.findById(id).orElseThrow();
+        visit.lastSeen = java.time.Instant.now().minusSeconds(120);
+        visits.save(visit);
+        var lastSeen = visits.findById(id).orElseThrow().lastSeen;
+        service.record(id, Map.of(), "Alex");
+        var updated = visits.findById(id).orElseThrow();
+        assertThat(updated.visitCount).isEqualTo(1);
+        assertThat(updated.lastSeen).isEqualTo(lastSeen);
+    }
+
     @Test void expiredWindowRecordsNewActivityAndDifferentPeopleRemainSeparate() {
         String id = UUID.randomUUID().toString();
         service.record(id, Map.of("city", "Austin"), "Alex");
         var visit = visits.findById(id).orElseThrow();
-        visit.lastSeen = java.time.Instant.now().minusSeconds(1801);
+        visit.lastSeen = java.time.Instant.now().minusSeconds(181);
         visits.save(visit);
         service.record(id, Map.of(), "Alex");
         var updated = visits.findById(id).orElseThrow();
@@ -108,7 +121,8 @@ class LogsIntegrationTest extends ManagerAccessFixture {
         var result = mvc.perform(get("/logs"))
             .andExpect(status().isOk())
             .andExpect(content().string(org.hamcrest.Matchers.containsString("href=\"/settings#administration\">Back to Settings</a>")))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("Times shown in UTC.")))
+            .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Times shown in UTC."))))
+            .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Visits count activity windows"))))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("12:00 AM")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("href=\"/logs?page=1\"")))
             .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("logs-filters"))))
