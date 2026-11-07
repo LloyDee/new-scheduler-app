@@ -1,4 +1,4 @@
-# new-scheduler-app
+# New Scheduler App
 
 A mobile-friendly, server-rendered scheduler for Regional Conventions and Circuit Assemblies. Built with Java 21, Spring Boot, Gradle (Groovy DSL), Thymeleaf, Spring Data JPA, and H2.
 
