@@ -6,7 +6,10 @@ const script = readFileSync('src/main/resources/static/js/logs.js', 'utf8');
 
 function setup(zone, values) {
   const events = {};
-  const makeTime = value => ({ getAttribute: () => value, textContent: 'UTC fallback' });
+  const makeTime = entry => {
+    const { value, compact = false } = entry && typeof entry === 'object' ? entry : { value: entry };
+    return { getAttribute: name => name === 'datetime' ? value : compact ? 'compact' : '', textContent: 'UTC fallback' };
+  };
   const state = { times: values.map(makeTime), labels: [{}, {}] };
   vm.runInNewContext(script, {
     Intl: { DateTimeFormat: function(locale, options) {
@@ -41,4 +44,15 @@ test('missing or invalid timestamps preserve fallback text and empty pages are s
   const state = setup('America/Chicago', ['', null, 'invalid']);
   state.times.forEach(time => assert.equal(time.textContent, 'UTC fallback'));
   state.navigate([]);
+});
+
+test('last seen omits timezone suffix while first seen retains it across navigation', () => {
+  const state = setup('America/Chicago', [
+    { value: '2026-11-07T03:27:00Z', compact: true },
+    '2026-11-07T03:27:00Z',
+  ]);
+  assert.equal(state.times[0].textContent, 'Nov 6, 2026, 9:27 PM');
+  assert.equal(state.times[1].textContent, 'Nov 6, 2026, 9:27 PM CST');
+  state.navigate([{ value: '2026-10-31T03:27:00Z', compact: true }]);
+  assert.equal(state.times[0].textContent, 'Oct 30, 2026, 10:27 PM');
 });

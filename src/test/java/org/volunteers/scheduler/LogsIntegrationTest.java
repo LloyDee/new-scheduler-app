@@ -124,7 +124,7 @@ class LogsIntegrationTest extends ManagerAccessFixture {
             .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Times shown in UTC."))))
             .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Visits count activity windows"))))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("12:00 AM UTC")))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("data-log-time datetime=\"2030-01-01T00:00:11Z\"")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("data-log-time=\"compact\" datetime=\"2030-01-01T00:00:11Z\">Jan 1, 2030 12:00 AM</time>")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("data-logs-timezone>UTC</span>")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("/js/logs.js")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("href=\"/logs?page=1\"")))

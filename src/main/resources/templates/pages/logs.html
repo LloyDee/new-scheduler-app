@@ -16,7 +16,7 @@
                     <td th:text="${visit.city ?: 'Unknown'}"></td><td th:text="${visit.region ?: 'Unknown'}"></td><td th:text="${visit.country ?: 'Unknown'}"></td>
                     <td th:text="${visit.timezone ?: 'Unknown'}"></td><td th:text="${visit.language ?: 'Unknown'}"></td>
                     <td><time data-log-time th:datetime="${visit.firstSeen}" th:text="${#temporals.format(visit.firstSeen, 'MMM d, yyyy h:mm a ''UTC''', 'UTC')}"></time></td>
-                    <td><time data-log-time th:datetime="${visit.lastSeen}" th:text="${#temporals.format(visit.lastSeen, 'MMM d, yyyy h:mm a ''UTC''', 'UTC')}"></time></td><td th:text="${visit.visitCount}"></td>
+                    <td><time data-log-time="compact" th:datetime="${visit.lastSeen}" th:text="${#temporals.format(visit.lastSeen, 'MMM d, yyyy h:mm a', 'UTC')}"></time></td><td th:text="${visit.visitCount}"></td>
                 </tr></tbody>
             </table>
         </div>
@@ -29,7 +29,7 @@
                 </header>
                 <dl class="logs-details logs-activity">
                     <div><dt>Browser</dt><dd th:text="${visit.browser ?: 'Unknown browser'}"></dd></div>
-                    <div><dt>Last seen</dt><dd><time data-log-time th:datetime="${visit.lastSeen}" th:text="${#temporals.format(visit.lastSeen, 'MMM d, yyyy h:mm a ''UTC''', 'UTC')}"></time></dd></div>
+                    <div><dt>Last seen</dt><dd><time data-log-time="compact" th:datetime="${visit.lastSeen}" th:text="${#temporals.format(visit.lastSeen, 'MMM d, yyyy h:mm a', 'UTC')}"></time></dd></div>
                     <div><dt>Visits</dt><dd th:text="${visit.visitCount}"></dd></div>
                 </dl>
                 <details class="logs-disclosure">
