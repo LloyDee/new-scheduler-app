@@ -727,6 +727,61 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
         assertThat(options.get(shift.getId())).containsExactly(volunteer).doesNotContain(unassigned);
     }
 
+    @Test void departmentMenusAndDialogsReplaceInlineCoverage() throws Exception {
+        Department empty = service.saveDepartment(event.getId(), null, Map.of("name", "Empty team", "description", ""));
+        String html = mvc.perform(get("/events/" + event.getId() + "/departments"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(html).contains("department-menu-toggle", "View Department", "Edit Department", "Delete Department",
+                "data-department-card=\"department-dialog-" + department.getId(),
+                "class=\"department-card-title\"", "data-department-card-open", "aria-haspopup=\"dialog\"",
+                "Delete this department and all its shifts and assignments?", "No shifts in this department.",
+                "class=\"app-dialog department-dialog\"", "Morning shift", "method=\"dialog\" class=\"app-dialog-footer\"")
+                .doesNotContain("View coverage", "department-coverage");
+        var response = mvc.perform(get("/events/" + event.getId() + "/departments")
+                        .param("view", department.getId().toString()).param("page", "99"))
+                .andExpect(status().isOk()).andReturn();
+        assertThat(response.getResponse().getContentAsString()).contains("data-department-auto-open=\"true\"", "Morning shift");
+        @SuppressWarnings("unchecked")
+        var dialogDepartments = (List<Department>) response.getModelAndView().getModel().get("dialogDepartments");
+        assertThat(dialogDepartments).extracting(Department::getId).contains(department.getId()).doesNotContain(empty.getId());
+    }
+
+    @Test void scheduleDetailsIncludeEmptySmallAndLargeTeams() throws Exception {
+        var shiftValues = shiftInput("09:00", "10:00");
+        shiftValues.put("requiredCount", "4");
+        service.saveShift(event.getId(), shift.getId(), shiftValues);
+        var ids = new java.util.ArrayList<Long>();
+        for (int size : List.of(0, 1, 3, 4, 5, 7)) {
+            while (ids.size() < size) {
+                Volunteer member = service.saveVolunteer(event.getId(), null,
+                        volunteerInput("name", "Details Member " + ids.size(), "phone", "2025550101",
+                                "email", "details" + ids.size() + "@example.com"));
+                ids.add(member.getId());
+            }
+            service.updateAssignments(event.getId(), shift.getId(), ids);
+            String html = mvc.perform(get("/events/" + event.getId() + "/schedule"))
+                    .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+            assertThat(html).contains("data-shift-details=\"shift-details-" + shift.getId(),
+                    "class=\"app-dialog shift-details-dialog\"", "data-shift-open", "href=\"#departments\"",
+                    "href=\"#calendar\"", "href=\"#clock\"", "class=\"sr-only\">Department</span>",
+                    "class=\"sr-only\">Date</span>", "class=\"sr-only\">Time</span>",
+                    "class=\"shift-details-heading\"", "class=\"sr-only\">Status: </span>",
+                    "class=\"sr-only\">Staffing: </span>",
+                    "class=\"app-dialog-footer\"><button>Close</button>");
+            assertThat(html).contains("shift-details-coverage " + (size == 0 ? "coverage-empty" : size < 4 ? "coverage-partial" : "coverage-filled"),
+                    size + " / 4").doesNotContain("<dt>Status</dt>", "<dt>Staffing</dt>");
+            if (size == 0) assertThat(html).contains("No volunteers assigned.");
+            else {
+                assertThat(html).contains("data-shift-search", "Details Member " + (size - 1),
+                        "class=\"shift-volunteer-icon\" aria-hidden=\"true\"");
+                if (size == 7) assertThat(html).contains("View all 7 volunteers").doesNotContain("data-team-dialog=");
+            }
+        }
+        String departments = mvc.perform(get("/events/" + event.getId() + "/departments"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(departments).doesNotContain("data-shift-details=", "data-shift-open");
+    }
+
     @Test void assignmentSelectionSupportsAddRemoveRetainAndClear() throws Exception {
         Volunteer second = service.saveVolunteer(event.getId(), null,
                 volunteerInput("name", "Second", "phone", "2025550101", "email", "second@example.com"));

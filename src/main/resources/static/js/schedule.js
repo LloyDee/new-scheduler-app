@@ -4,6 +4,48 @@ function closeShiftMenu(menu) {
   menu.querySelector('.shift-menu-items').hidden = true;
 }
 function initializeSchedule() {
+  document.querySelectorAll('[data-shift-details]').forEach(card => {
+    if (card.dataset.detailsReady) return;
+    card.dataset.detailsReady = 'true';
+    const dialog = document.getElementById(card.dataset.shiftDetails);
+    const title = card.querySelector('[data-shift-open]');
+    const search = dialog.querySelector('[data-shift-search]');
+    const people = [...dialog.querySelectorAll('.shift-details-list li')];
+    let opener = title;
+    const filter = () => {
+      const query = search?.value.trim().toLocaleLowerCase() || '';
+      let count = 0;
+      people.forEach(person => {
+        person.hidden = !person.querySelector('span').textContent.toLocaleLowerCase().includes(query);
+        if (!person.hidden) count++;
+      });
+      dialog.querySelector('[data-shift-count]').textContent = count + ' volunteers shown';
+      dialog.querySelector('[data-shift-empty]').hidden = !people.length || count !== 0;
+    };
+    const open = trigger => {
+      opener = trigger;
+      if (search) search.value = '';
+      filter();
+      dialog.showModal();
+      dialog.querySelector('h2').focus();
+      dialog.querySelector('.app-dialog-content').scrollTop = 0;
+    };
+    card.querySelectorAll('[data-shift-open]').forEach(trigger => {
+      trigger.addEventListener('click', () => open(trigger));
+    });
+    card.addEventListener('click', event => {
+      if (event.target.closest('button, a, input, select, textarea, label, form, dialog, .shift-menu, [role="button"]')) return;
+      if (window.getSelection()?.toString()) return;
+      open(title);
+    });
+    search?.addEventListener('input', filter);
+    dialog.addEventListener('click', event => {
+      if (event.target !== dialog) return;
+      const rect = dialog.getBoundingClientRect();
+      if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close();
+    });
+    dialog.addEventListener('close', () => opener.focus());
+  });
   document.querySelectorAll('.shift-menu').forEach(menu => {
     if (menu.dataset.menuReady) return;
     menu.dataset.menuReady = 'true';

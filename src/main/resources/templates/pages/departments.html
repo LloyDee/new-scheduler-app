@@ -20,7 +20,7 @@
               Add your first department, then create its shifts in the schedule.
             </p>
           </div>
-          <article class="card department-card" th:each="d : ${departments}" th:with="details=${departmentDetails[d.id]}">
+          <article class="card department-card" th:each="d : ${departments}" th:with="details=${departmentDetails[d.id]}" th:attr="data-department-card=${'department-dialog-' + d.id}">
             <div class="department-card-header">
               <p class="eyebrow">DEPARTMENT</p>
               <span class="department-icon-line department-volunteer-count">
@@ -28,7 +28,7 @@
                 <span class="sr-only">Volunteers: </span><span th:text="${details['volunteerCount']}"></span>
               </span>
             </div>
-            <h2 th:text="${d.name}"></h2>
+            <h2><button type="button" class="department-card-title" data-department-card-open aria-haspopup="dialog" th:attr="aria-controls=${'department-dialog-' + d.id}" th:text="${d.name}"></button></h2>
             <p
               class="preserve muted"
               th:if="${!#strings.isEmpty(d.description)}"
@@ -44,24 +44,25 @@
               <p class="department-icon-line" th:each="name : ${details['ASSISTANT_OVERSEER']}"><svg aria-hidden="true"><use href="#people" /></svg><span th:classappend="${ownVolunteerIds.contains(name.id) ? 'current-user-name' : ''}" th:text="${name.name}"></span></p>
               <p class="muted" th:if="${#lists.isEmpty(details['ASSISTANT_OVERSEER'])}">Not assigned</p>
             </div>
-            <div class="card-actions">
-              <a th:if="${canManage}"
-                th:href="@{${base + '/departments'}(edit=${d.id})}"
-                >Edit</a
-              >
-              <form th:if="${canManage}"
-                method="post"
-                th:action="@{${base + '/departments/' + d.id + '/delete'}}"
-                data-confirm="Delete this department and all its shifts and assignments?"
-              >
-                <button class="text-button danger">Delete</button>
-              </form>
+            <div class="department-menu">
+              <button type="button" class="department-menu-toggle" aria-label="Department actions" aria-expanded="false" th:attr="aria-controls=${'department-actions-' + d.id}"><span aria-hidden="true">&#8943;</span></button>
+              <div class="department-menu-items" th:id="${'department-actions-' + d.id}" hidden>
+                <button type="button" data-department-open aria-haspopup="dialog" th:attr="aria-controls=${'department-dialog-' + d.id}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>View Department</button>
+                <a th:if="${canManage}" th:href="@{${base + '/departments'}(edit=${d.id})}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m15 4 5 5M4 20l5-1L21 7l-5-5L4 14z"/></svg>Edit Department</a>
+                <form th:if="${canManage}" method="post" th:action="@{${base + '/departments/' + d.id + '/delete'}}" data-confirm="Delete this department and all its shifts and assignments?">
+                  <button class="danger"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></svg>Delete Department</button>
+                </form>
+              </div>
             </div>
-            <details class="department-coverage" th:open="${selectedDepartment != null and selectedDepartment.id == d.id}">
-              <summary>View coverage</summary>
-              <div th:replace="~{shared/fragments :: shifts(${departmentSchedules[d.id]}, false)}"></div>
-            </details>
           </article>
+          <dialog class="app-dialog department-dialog" th:each="d : ${dialogDepartments}" th:id="${'department-dialog-' + d.id}" th:attr="aria-labelledby=${'department-title-' + d.id},data-department-auto-open=${selectedDepartment != null and selectedDepartment.id == d.id}">
+            <div class="app-dialog-content">
+              <h2 tabindex="-1" th:id="${'department-title-' + d.id}" th:text="${d.name}"></h2>
+              <p th:if="${departmentSchedules[d.id].isEmpty()}">No shifts in this department.</p>
+              <th:block th:if="${!departmentSchedules[d.id].isEmpty()}"><div th:replace="~{shared/fragments :: shifts(${departmentSchedules[d.id]}, false)}"></div></th:block>
+            </div>
+            <form method="dialog" class="app-dialog-footer"><button>Close</button></form>
+          </dialog>
           <nav th:replace="~{shared/fragments :: pagination(${listPage}, @{${base + '/departments'}(page=${listPage.number - 1})}, @{${base + '/departments'}(page=${listPage.number + 1})})}"></nav>
         </div>
 

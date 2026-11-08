@@ -54,7 +54,7 @@ class RequestQueryIntegrationTest {
             statistics.clear();
             var response = mvc.perform(get(path).session(session)).andExpect(status().isOk()).andReturn();
             if (path.endsWith("/departments")) assertThat(response.getResponse().getContentAsString())
-                .contains("<summary>View coverage</summary>");
+                .contains("View Department", "department-menu-toggle", "department-dialog");
             counts.put(path, statistics.getPrepareStatementCount());
         }
         assertThat(counts).allSatisfy((path, count) -> {

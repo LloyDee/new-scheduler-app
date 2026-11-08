@@ -267,10 +267,16 @@ public class WebController {
         }
         model.addAttribute("departmentDetails", departmentDetails);
         model.addAttribute("departmentSchedules", departmentSchedules);
+        var dialogDepartments = new ArrayList<>(departmentPage.getContent());
         if (view != null) {
-            model.addAttribute("selectedDepartment", snapshotDepartment(data, view));
-            model.addAttribute("departmentRows", data.rows().stream().filter(r -> r.shift().getDepartment().getId().equals(view)).toList());
+            Department selected = snapshotDepartment(data, view);
+            model.addAttribute("selectedDepartment", selected);
+            if (dialogDepartments.stream().noneMatch(d -> d.getId().equals(view))) dialogDepartments.add(selected);
+            var selectedRows = rows.stream().filter(r -> r.shift().getDepartment().getId().equals(view)).toList();
+            departmentSchedules.put(view, selectedRows);
+            model.addAttribute("departmentRows", selectedRows);
         }
+        model.addAttribute("dialogDepartments", dialogDepartments);
         draft(model, defaults); model.addAttribute("editId", edit);
         model.addAttribute("showEditor", create || edit != null || model.containsAttribute("error") && model.containsAttribute("draft"));
         return Boolean.TRUE.equals(model.getAttribute("showEditor")) ? "pages/departments-editor" : "pages/departments";

@@ -14,7 +14,7 @@
       <article
         class="card shift-card"
         th:each="row : ${items}"
-        th:id="${'shift-' + row.shift.id}"
+        th:id="${'shift-' + row.shift.id}" th:attr="data-shift-details=${editable ? 'shift-details-' + row.shift.id : null}"
       >
         <div class="card-heading">
           <div>
@@ -24,7 +24,7 @@
               <span class="shift-date" th:text="${#temporals.format(row.shift.date, 'EEE, MMM d, yyyy')}"></span>
             </p>
             <div class="shift-task">
-              <h3 th:text="${row.shift.name}"></h3>
+              <h3><button th:if="${editable}" type="button" class="shift-details-trigger" data-shift-open aria-haspopup="dialog" th:attr="aria-controls=${'shift-details-' + row.shift.id}" th:text="${row.shift.name}"></button><span th:unless="${editable}" th:text="${row.shift.name}"></span></h3>
               <p class="shift-time">
                 <span th:text="${#temporals.format(row.shift.startTime, timePattern)}"></span>
                 <span aria-hidden="true"> → </span>
@@ -53,7 +53,7 @@
             <span class="assigned-name"><span th:text="${assignment.volunteer.name}"></span> <small class="you-badge" th:if="${ownVolunteerIds.contains(assignment.volunteer.id)}">You</small></span>
           </div>
         </div>
-        <th:block th:if="${row.assignments.size() > 6}">
+        <th:block th:if="${!editable and row.assignments.size() > 6}">
           <button type="button" class="text-button volunteer-view-all" th:attr="data-team-dialog=${'team-dialog-' + row.shift.id},aria-controls=${'team-dialog-' + row.shift.id}" aria-haspopup="dialog" th:text="${'View all ' + row.assignments.size() + ' volunteers'}"></button>
           <dialog class="team-sheet" th:id="${'team-dialog-' + row.shift.id}" th:attr="aria-labelledby=${'team-title-' + row.shift.id}">
             <div class="team-sheet-heading">
@@ -70,6 +70,39 @@
               </li>
             </ul>
             <p data-team-empty hidden>No volunteers match your search.</p>
+          </dialog>
+        </th:block>
+        <th:block th:if="${editable}">
+          <button th:if="${row.assignments.size() > 6}" type="button" class="text-button volunteer-view-all" data-shift-open aria-haspopup="dialog" th:attr="aria-controls=${'shift-details-' + row.shift.id}" th:text="${'View all ' + row.assignments.size() + ' volunteers'}"></button>
+          <dialog class="app-dialog shift-details-dialog" th:id="${'shift-details-' + row.shift.id}" th:attr="aria-labelledby=${'shift-details-title-' + row.shift.id}">
+            <div class="app-dialog-content">
+              <div class="shift-details-heading">
+                <h2 tabindex="-1" th:id="${'shift-details-title-' + row.shift.id}" th:text="${row.shift.name}"></h2>
+                <div class="shift-details-coverage" th:classappend="${row.assignments.isEmpty() ? 'coverage-empty' : (row.assignments.size() < row.shift.requiredCount ? 'coverage-partial' : 'coverage-filled')}">
+                  <span><span class="sr-only">Status: </span><span th:text="${row.status}"></span></span>
+                  <strong><span class="sr-only">Staffing: </span><span th:text="${row.assignments.size() + ' / ' + row.shift.requiredCount}"></span></strong>
+                </div>
+              </div>
+              <dl class="shift-details-fields">
+                <dt><svg aria-hidden="true"><use href="#departments"/></svg><span class="sr-only">Department</span></dt><dd th:text="${row.shift.department.name}"></dd>
+                <dt><svg aria-hidden="true"><use href="#calendar"/></svg><span class="sr-only">Date</span></dt><dd th:text="${#temporals.format(row.shift.date, 'EEE, MMM d, yyyy')}"></dd>
+                <dt><svg aria-hidden="true"><use href="#clock"/></svg><span class="sr-only">Time</span></dt><dd><span th:text="${#temporals.format(row.shift.startTime, timePattern)}"></span> &ndash; <span th:text="${#temporals.format(row.shift.endTime, timePattern)}"></span></dd>
+              </dl>
+              <th:block th:if="${!#strings.isEmpty(row.shift.notes)}"><h3>Notes</h3><p class="preserve" th:text="${row.shift.notes}"></p></th:block>
+              <h3 th:text="${'Volunteers (' + row.assignments.size() + ')'}"></h3>
+              <p th:if="${row.assignments.isEmpty()}">No volunteers assigned.</p>
+              <label th:if="${!row.assignments.isEmpty()}">Search volunteers<input type="search" data-shift-search placeholder="Search by name" /></label>
+              <p class="sr-only" data-shift-count role="status" aria-live="polite"></p>
+              <ul class="shift-details-list">
+                <li th:each="assignment : ${row.assignments}" th:classappend="${ownVolunteerIds.contains(assignment.volunteer.id) ? 'is-you' : ''}">
+                  <svg class="shift-volunteer-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M4 21v-3a8 8 0 0 1 16 0v3"/></svg>
+                  <span th:text="${assignment.volunteer.name}"></span>
+                  <small class="you-badge" th:if="${ownVolunteerIds.contains(assignment.volunteer.id)}">You</small>
+                </li>
+              </ul>
+              <p data-shift-empty hidden>No volunteers match your search.</p>
+            </div>
+            <form method="dialog" class="app-dialog-footer"><button>Close</button></form>
           </dialog>
         </th:block>
         <th:block th:if="${editable and canManage}">
