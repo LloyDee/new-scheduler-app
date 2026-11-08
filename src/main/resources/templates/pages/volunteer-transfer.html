@@ -8,7 +8,12 @@
     </div>
 
     <p th:text="${'Source event: ' + event.name}"></p>
-    <p th:if="${destinations.isEmpty()}">No destination events available. An event Admin must administer both events.</p>
+    <div class="transfer-destination-warning" th:if="${destinations.isEmpty()}">
+        <span>No destination events available.</span>
+        <span class="transfer-help transfer-help-danger"><button type="button" aria-label="Why no destination events are available" aria-describedby="transfer-destination-help">&#9432;</button>
+            <span id="transfer-destination-help" role="tooltip">No destination events available. An event Admin must administer both events.</span>
+        </span>
+    </div>
     <link rel="stylesheet" th:href="@{/css/volunteers.css}"/>
     <form data-transfer-search method="get" class="card stack" th:action="@{/events/{id}/volunteers/transfer(id=${event.id})}">
 
@@ -17,9 +22,9 @@
         <dialog id="transfer-volunteer-dialog" class="app-dialog assignment-dialog" aria-labelledby="transfer-volunteer-title">
         <div class="app-dialog-content stack">
         <h2 id="transfer-volunteer-title">Select volunteers</h2>
-        <div class="filter-bar">
-            <label class="grow"><input type="search" name="q" aria-label="Search volunteers" th:value="${q}" placeholder="Name, congregation, phone or email"/></label>
-            <label><select name="departmentId" aria-label="Filter by department">
+        <div class="transfer-selection-filters">
+            <label>Search volunteers<input type="search" name="q" th:value="${q}" placeholder="Name, congregation, phone or email"/></label>
+            <label>Filter by department<select name="departmentId">
                 <option value="">All departments</option>
                 <option th:each="d : ${departments}" th:value="${d.id}" th:text="${d.name}" th:selected="${departmentId == d.id}"></option>
             </select></label>

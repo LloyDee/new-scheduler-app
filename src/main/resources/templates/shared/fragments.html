@@ -73,16 +73,17 @@
           </dialog>
         </th:block>
         <th:block th:if="${editable and canManage}">
-          <details class="shift-menu">
-            <summary aria-label="Shift actions"><span aria-hidden="true">&#8943;</span></summary>
-            <div class="shift-menu-items">
+          <div class="shift-menu">
+            <button type="button" class="shift-menu-toggle" aria-label="Shift actions" aria-expanded="false"
+                    th:attr="aria-controls=${'shift-actions-' + row.shift.id}"><span aria-hidden="true">&#8943;</span></button>
+            <div class="shift-menu-items" th:id="${'shift-actions-' + row.shift.id}" hidden>
               <button type="button" th:if="${!assignmentOptions[row.shift.id].isEmpty()}" th:attr="data-assignment-dialog=${'assignment-dialog-' + row.shift.id},aria-controls=${'assignment-dialog-' + row.shift.id}" aria-haspopup="dialog"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 4a3 3 0 0 1 0 6m3 11v-3a6 6 0 0 0-2-4"/></svg> Choose Volunteers</button>
               <a th:href="@{${base + '/schedule'}(edit=${row.shift.id})}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m15 4 5 5M4 20l5-1L21 7l-5-5L4 14z"/></svg> Edit Shift</a>
               <form method="post" th:action="@{${base + '/schedule/' + row.shift.id + '/delete'}}" data-confirm="Delete this shift and all its assignments?">
                 <button class="danger"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></svg> Delete Shift</button>
               </form>
             </div>
-          </details>
+          </div>
           <th:block th:if="${!assignmentOptions[row.shift.id].isEmpty()}">
             <dialog class="app-dialog assignment-dialog" th:id="${'assignment-dialog-' + row.shift.id}"
                     th:attr="aria-labelledby=${'assignment-title-' + row.shift.id}">

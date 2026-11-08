@@ -1,15 +1,25 @@
 (() => {
+function closeShiftMenu(menu) {
+  menu.querySelector('.shift-menu-toggle').setAttribute('aria-expanded', 'false');
+  menu.querySelector('.shift-menu-items').hidden = true;
+}
 function initializeSchedule() {
   document.querySelectorAll('.shift-menu').forEach(menu => {
     if (menu.dataset.menuReady) return;
     menu.dataset.menuReady = 'true';
+    const toggle = menu.querySelector('.shift-menu-toggle');
+    const items = menu.querySelector('.shift-menu-items');
+    toggle.addEventListener('click', () => {
+      items.hidden = !items.hidden;
+      toggle.setAttribute('aria-expanded', String(!items.hidden));
+    });
     menu.addEventListener('keydown', event => {
-      if (event.key === 'Escape') { menu.open = false; menu.querySelector('summary').focus(); }
+      if (event.key === 'Escape') { closeShiftMenu(menu); toggle.focus(); }
     });
     menu.addEventListener('focusout', event => {
-      // Touch browsers can blur the summary without focusing the tapped action.
+      // Touch browsers can blur the toggle without focusing the tapped action.
       // Let the click finish when there is no next focus target.
-      if (event.relatedTarget && !menu.contains(event.relatedTarget)) menu.open = false;
+      if (event.relatedTarget && !menu.contains(event.relatedTarget)) closeShiftMenu(menu);
     });
   });
   document.querySelectorAll('[data-team-dialog]').forEach(trigger => {
@@ -50,19 +60,20 @@ function initializeSchedule() {
     if (!dialog) return;
     const form = dialog.querySelector('form');
     trigger.addEventListener('click', () => {
-      trigger.closest('details')?.removeAttribute('open');
+      const menu = trigger.closest('.shift-menu');
+      if (menu) closeShiftMenu(menu);
       form.reset();
       dialog.showModal();
       dialog.querySelector('.app-dialog-content').scrollTop = 0;
     });
     dialog.querySelector('[data-assignment-cancel]').addEventListener('click', () => dialog.close());
-    dialog.addEventListener('close', () => trigger.focus());
+    dialog.addEventListener('close', () => trigger.closest('.shift-menu')?.querySelector('.shift-menu-toggle').focus());
   });
 }
 document.addEventListener('scheduler:page', initializeSchedule);
 document.addEventListener('click', event => {
-  document.querySelectorAll('.shift-menu[open]').forEach(menu => {
-    if (!menu.contains(event.target)) menu.open = false;
+  document.querySelectorAll('.shift-menu').forEach(menu => {
+    if (!menu.contains(event.target)) closeShiftMenu(menu);
   });
 });
 initializeSchedule();

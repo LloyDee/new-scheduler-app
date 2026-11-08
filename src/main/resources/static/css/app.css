@@ -1723,9 +1723,8 @@ input, select, textarea { background: var(--surface-tint); border-color: var(--b
 .you-badge { display: inline-block; font-size: .7rem; font-weight: 750; color: var(--green); border: 1px solid currentColor; border-radius: 12px; padding: 0 5px; white-space: nowrap; }
 .volunteer-view-all { min-height: 44px; text-align: left; }
 .shift-menu { position: absolute; top: 16px; right: 12px; z-index: 2; }
-.shift-menu summary { list-style: none; cursor: pointer; width: 40px; height: 44px; display: grid; place-items: center; font-size: 1.6rem; border-radius: 8px; }
-.shift-menu summary::-webkit-details-marker { display: none; }
-.shift-menu summary:hover { background: var(--surface-soft, #edf2e9); }
+.shift-menu-toggle { cursor: pointer; width: 44px; height: 44px; min-height: 44px; padding: 0; display: grid; place-items: center; font-size: 1.6rem; border: 0; border-radius: 8px; background: transparent; color: inherit; }
+.shift-menu-toggle:hover { background: var(--surface-soft, #edf2e9); }
 .shift-menu-items { position: absolute; top: 44px; right: 0; width: 220px; padding: 6px; background: var(--surface, white); border: 1px solid #d5dfda; border-radius: 12px; box-shadow: 0 8px 24px #0002; }
 .shift-menu-items a, .shift-menu-items button { display: flex; align-items: center; justify-content: flex-start; gap: 10px; width: 100%; min-height: 44px; padding: 10px; border: 0; border-radius: 6px; background: transparent; color: inherit; text-align: left; text-decoration: none; font: inherit; }
 .shift-menu-items .danger { color: #a42332; }

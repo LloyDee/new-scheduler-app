@@ -9,7 +9,6 @@
     <link rel="stylesheet" th:href="@{/css/volunteers.css}"/>
     <div class="page-heading volunteer-page-actions" th:if="${canManage}">
         <a class="button" th:href="${base + '/volunteers?create=true'}">+ Add Volunteers</a>
-        <a class="button" th:if="${isAppOwner or canAdminister}" th:href="@{${base + '/volunteers/transfer'}}"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"/></svg><span>Add / Move Profile</span></a>
     </div>
     <dialog class="volunteer-dialog" th:each="v : ${dialogVolunteers}" th:id="${'volunteer-dialog-' + v.id}"
             th:attr="aria-labelledby=${'volunteer-title-' + v.id},data-open-on-load=${openVolunteerId == v.id}">
