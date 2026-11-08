@@ -13,7 +13,16 @@
         </div>
       </div>
       <div data-home-announcements aria-live="polite"></div>
-      <article class="card weather-card" aria-label="Current location weather" data-weather>
+      <div class="home-shifts" th:if="${event != null}">
+        <div>
+          <div class="section-heading">
+            <h2>Your upcoming shifts</h2>
+            <a th:href="${base + '/schedule'}">View schedule →</a>
+          </div>
+          <div th:replace="~{shared/fragments :: shifts(${upcoming}, false)}"></div>
+        </div>
+      </div>
+      <article class="card weather-card weather-card-compact" aria-label="Current location weather" data-weather>
         <div class="weather-scene" aria-hidden="true">
           <img class="weather-background" data-weather-background src="/weather-card-gifs/cloudy.gif" th:src="@{/weather-card-gifs/cloudy.gif}" alt="" decoding="async" />
         </div>
@@ -59,15 +68,6 @@
           ><strong th:text="${missing}"></strong
           ><span>More Willing Hands Needed →</span></a
         >
-      </div>
-      <div class="home-shifts" th:if="${event != null}">
-        <div>
-          <div class="section-heading">
-            <h2>Your upcoming shifts</h2>
-            <a th:href="${base + '/schedule'}">View schedule →</a>
-          </div>
-          <div th:replace="~{shared/fragments :: shifts(${upcoming}, false)}"></div>
-        </div>
       </div>
     </section>
   </body>

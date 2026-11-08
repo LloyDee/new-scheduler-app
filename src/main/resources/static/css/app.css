@@ -1763,3 +1763,13 @@ input, select, textarea { background: var(--surface-tint); border-color: var(--b
 :is(.shift-card, .department-card) :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
     border-color: transparent;
 }
+
+/* Keep the Home weather summary compact between shifts and event statistics. */
+.home-shifts { margin-bottom: 22px; }
+.weather-card.weather-card-compact { padding: 14px 18px; }
+.weather-card-compact .weather-icon { width: 56px; height: 56px; }
+.weather-card-compact .weather-temperature { font-size: 1.8rem; }
+.weather-card-compact .weather-unit { font-size: 1rem; }
+.weather-card-compact .weather-details { margin-top: 10px; padding: 8px 0; }
+.weather-card-compact .weather-details dd { margin-top: 3px; }
+.weather-card-compact .weather-range { padding: 8px 0 0; }
