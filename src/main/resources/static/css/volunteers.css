@@ -258,7 +258,7 @@ body:has(.volunteer-dialog[open]) {
 }
 
 .volunteers-page .volunteer-page-actions { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 12px; }
-.volunteers-page .volunteer-page-actions > .button { width: auto; flex: 0 1 auto; }
+.volunteers-page .volunteer-page-actions > .button { flex: 0 1 auto; }
 
 .transfer-title { display: flex; align-items: center; gap: 10px; }
 .transfer-title h1 { margin: 0; }
