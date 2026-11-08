@@ -10,9 +10,9 @@
     <div class="page-heading volunteer-page-actions" th:if="${canManage}">
         <a class="button" th:href="${base + '/volunteers?create=true'}">+ Add Volunteers</a>
     </div>
-    <dialog class="volunteer-dialog" th:each="v : ${dialogVolunteers}" th:id="${'volunteer-dialog-' + v.id}"
+    <dialog class="app-dialog volunteer-dialog" th:each="v : ${dialogVolunteers}" th:id="${'volunteer-dialog-' + v.id}"
             th:attr="aria-labelledby=${'volunteer-title-' + v.id},data-open-on-load=${openVolunteerId == v.id}">
-        <div class="volunteer-dialog-content">
+        <div class="app-dialog-content volunteer-dialog-content">
             <h2 class="volunteer-icon-line" th:id="${'volunteer-title-' + v.id}">
                 <svg aria-hidden="true">
                     <use href="#people"/>
@@ -116,7 +116,7 @@
                 </p>
             </div>
         </div>
-        <form method="dialog" class="volunteer-dialog-footer">
+        <form method="dialog" class="app-dialog-footer volunteer-dialog-footer">
             <button autofocus>Close</button>
         </form>
     </dialog>

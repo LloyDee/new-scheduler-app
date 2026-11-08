@@ -12,37 +12,6 @@
     text-align: left;
 }
 
-.app-dialog {
-    width: min(640px, calc(100% - 32px));
-    max-height: calc(100dvh - 48px);
-    padding: 0;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--paper);
-    color: var(--ink);
-    box-shadow: 0 24px 64px rgb(0 0 0 / 25%);
-}
-
-.app-dialog[open] {
-    display: flex;
-    flex-direction: column;
-}
-
-.app-dialog::backdrop {
-    background: rgb(0 0 0 / 45%);
-}
-
-.app-dialog-content {
-    padding: 24px;
-    overflow-y: auto;
-    overflow-wrap: anywhere;
-    min-height: 0;
-}
-
-.app-dialog-content h2 {
-    margin-top: 0;
-}
-
 .app-dialog-content p {
     line-height: 1.65;
 }
@@ -93,32 +62,3 @@
 #about-dialog .app-dialog-footer {
     justify-content: center;
 }
-
-.app-dialog-footer {
-    display: flex;
-    justify-content: flex-end;
-    flex-shrink: 0;
-    padding: 16px 24px;
-    border-top: 1px solid var(--border);
-}
-
-body:has(.app-dialog[open]) {
-    overflow: hidden;
-}
-
-.assignment-dialog > form {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    overflow: hidden;
-}
-
-.assignment-choices {
-    display: grid;
-    gap: 12px;
-    padding: 0;
-    margin: 0;
-    border: 0;
-}
-
-.assignment-dialog .app-dialog-footer { gap: 12px; }

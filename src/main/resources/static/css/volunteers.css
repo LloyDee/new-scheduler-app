@@ -185,37 +185,6 @@
     color: var(--green);
 }
 
-.volunteer-dialog {
-    width: min(640px, calc(100% - 32px));
-    max-height: calc(100dvh - 32px);
-    padding: 0;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--paper);
-    color: var(--ink);
-    box-shadow: 0 24px 64px rgb(0 0 0 / 25%);
-}
-
-.volunteer-dialog[open] {
-    display: flex;
-    flex-direction: column;
-}
-
-.volunteer-dialog::backdrop {
-    background: rgb(0 0 0 / 45%);
-}
-
-.volunteer-dialog-content {
-    padding: 24px;
-    overflow-y: auto;
-    overflow-wrap: anywhere;
-    min-height: 0;
-}
-
-.volunteer-dialog-content h2 {
-    margin-top: 0;
-}
-
 .volunteer-details {
     display: grid;
     gap: 16px;
@@ -243,28 +212,6 @@
     margin: 0 0 8px;
 }
 
-.volunteer-dialog-footer {
-    display: flex;
-    justify-content: flex-end;
-    flex-shrink: 0;
-    padding: 16px 24px;
-    border-top: 1px solid var(--border);
-}
-
-body:has(.volunteer-dialog[open]) {
-    overflow: hidden;
-}
-
-@media (max-width: 740px) {
-    .volunteer-dialog-content {
-        padding: 20px;
-    }
-
-    .volunteer-dialog-footer button {
-        width: 100%;
-    }
-}
-
 .volunteers-page .volunteer-page-actions { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 12px; }
 .volunteers-page .volunteer-page-actions > .button { flex: 0 1 auto; }
 
@@ -280,7 +227,6 @@ body:has(.volunteer-dialog[open]) {
 }
 .transfer-help:hover [role="tooltip"], .transfer-help:focus-within [role="tooltip"] { display: block; }
 #transfer-volunteer-dialog .transfer-selection-filters { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; }
-#transfer-volunteer-dialog .app-dialog-footer { margin-top: 12px; }
 #transfer-volunteer-dialog .transfer-selection-filters input, #transfer-volunteer-dialog .transfer-selection-filters select { width: 100%; min-width: 0; font-size: 1rem; }
 #transfer-volunteer-dialog [data-transfer-results] > p { overflow-wrap: anywhere; }
 #transfer-volunteer-dialog .card-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: .8rem; }
