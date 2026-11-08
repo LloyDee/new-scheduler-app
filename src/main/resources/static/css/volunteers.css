@@ -271,25 +271,19 @@ body:has(.volunteer-dialog[open]) {
     font-size: .85rem; box-shadow: 0 4px 16px #0002;
 }
 .transfer-help:hover [role="tooltip"], .transfer-help:focus-within [role="tooltip"] { display: block; }
-.transfer-volunteer-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; min-width: 0; margin: 0; padding: 8px; }
-.transfer-volunteer-grid > label { display: flex; align-items: center; gap: 12px; min-width: 0; min-height: 44px; padding: 10px; margin: 0; border: 1px solid var(--border); border-radius: 6px; font-size: 1rem; line-height: 1.4; cursor: pointer; }
-.transfer-volunteer-grid > label:has(input:checked) { background: var(--green-light); border-color: var(--green); }
-.transfer-volunteer-grid > label input[type="checkbox"] { flex: 0 0 20px; width: 20px; height: 20px; min-height: 0; margin: 0; padding: 0; }
-.transfer-volunteer-grid > label span { display: block; min-width: 0; overflow-wrap: anywhere; }
-.transfer-volunteer-grid > p { grid-column: 1 / -1; }
 #transfer-volunteer-dialog .transfer-selection-filters { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; }
 #transfer-volunteer-dialog .app-dialog-footer { margin-top: 12px; }
-#transfer-volunteer-dialog .transfer-selection-filters > label { display: grid; gap: 6px; min-width: 0; }
 #transfer-volunteer-dialog .transfer-selection-filters input, #transfer-volunteer-dialog .transfer-selection-filters select { width: 100%; min-width: 0; font-size: 1rem; }
 #transfer-volunteer-dialog [data-transfer-results] > p { overflow-wrap: anywhere; }
 #transfer-volunteer-dialog .card-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: .8rem; }
 .transfer-destination-warning { position: relative; display: flex; align-items: center; gap: 8px; color: #b42318; }
-.transfer-help-danger { position: static; }
+.transfer-help-danger { position: relative; display: inline-block; }
 .transfer-help-danger > button { color: #b42318; min-width: 44px; min-height: 44px; }
 .transfer-help-danger [role="tooltip"] { left: 0; right: auto; color: #b42318; border-color: #b42318; background: #fff1f0; }
 @media (max-width: 600px) {
-    #transfer-volunteer-dialog .transfer-selection-filters, .transfer-volunteer-grid { grid-template-columns: minmax(0, 1fr); }
-    #transfer-volunteer-dialog .app-dialog-content { padding: 16px; }
-    #transfer-volunteer-dialog .app-dialog-footer button { width: 100%; }
+    .transfer-help-danger [role="tooltip"] { left: auto; right: 0; }
+    [data-transfer-review] > form { display: flex; }
+    [data-transfer-review] > form > button { flex: 1; }
+    #transfer-volunteer-dialog .transfer-selection-filters { grid-template-columns: minmax(0, 1fr); }
     .transfer-title { flex-wrap: wrap; }
 }
