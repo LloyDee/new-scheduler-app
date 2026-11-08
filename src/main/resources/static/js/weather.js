@@ -40,6 +40,8 @@ if (weatherCard) {
     return 'neutral';
   };
   const icon = field('icon');
+  const background = field('background');
+  const backgroundBase = background.getAttribute('src').replace(/[^/]+$/, '');
   // The template resolves the asset directory against the application's context path.
   const assetBase = icon.getAttribute('src').replace(/[^/]+$/, '');
 
@@ -80,6 +82,8 @@ if (weatherCard) {
       const [asset, description] = conditions(current.weather_code, current.is_day);
       const imageUrl = `${assetBase}${asset}.svg`;
       icon.setAttribute('src', imageUrl);
+      const backgroundUrl = `${backgroundBase}${asset}.gif`;
+      if (background.getAttribute('src') !== backgroundUrl) background.setAttribute('src', backgroundUrl);
       weatherCard.setAttribute('data-weather-scene', sceneFor(current.weather_code));
       weatherCard.setAttribute('data-weather-day', current.is_day === 0 ? 'night' : 'day');
       weatherCard.setAttribute('data-weather-heavy', String([65, 67, 75, 82, 86, 95, 96, 99].includes(current.weather_code)));

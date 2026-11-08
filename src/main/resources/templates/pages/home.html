@@ -15,14 +15,11 @@
       <div data-home-announcements aria-live="polite"></div>
       <article class="card weather-card" aria-label="Current location weather" data-weather>
         <div class="weather-scene" aria-hidden="true">
-          <span class="weather-sky-glow"></span><span class="weather-sky-stars"></span>
-          <span class="weather-sky-cloud"></span><span class="weather-sky-cloud weather-sky-cloud-back"></span>
-          <span class="weather-sky-mist"></span><span class="weather-sky-lightning"></span>
-          <div class="weather-sky-precipitation"><i style="--drop:0"></i><i style="--drop:1"></i><i style="--drop:2"></i><i style="--drop:3"></i><i style="--drop:4"></i><i style="--drop:5"></i><i style="--drop:6"></i><i style="--drop:7"></i><i style="--drop:8"></i><i style="--drop:9"></i><i style="--drop:10"></i><i style="--drop:11"></i><i style="--drop:12"></i><i style="--drop:13"></i><i style="--drop:14"></i><i style="--drop:15"></i><i style="--drop:16"></i><i style="--drop:17"></i></div>
+          <img class="weather-background" data-weather-background src="/weather-card-gifs/cloudy.gif" th:src="@{/weather-card-gifs/cloudy.gif}" alt="" decoding="async" />
         </div>
         <div class="weather-summary">
           <div class="weather-current">
-            <img class="weather-icon" data-weather-icon src="/weather-gifs/cloudy.svg" th:src="@{/weather-gifs/cloudy.svg}" width="88" height="88" alt="" aria-hidden="true" />
+            <img class="weather-icon" data-weather-icon src="/weather-icon-gifs/cloudy.svg" th:src="@{/weather-icon-gifs/cloudy.svg}" width="88" height="88" alt="" aria-hidden="true" />
             <div>
               <h2 class="weather-temperature"><span data-weather-temperature>—</span><span class="weather-unit">°F</span></h2>
               <p data-weather-condition>Current weather</p>
