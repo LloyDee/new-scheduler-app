@@ -7,7 +7,9 @@ function initializeSchedule() {
       if (event.key === 'Escape') { menu.open = false; menu.querySelector('summary').focus(); }
     });
     menu.addEventListener('focusout', event => {
-      if (!menu.contains(event.relatedTarget)) menu.open = false;
+      // Touch browsers can blur the summary without focusing the tapped action.
+      // Let the click finish when there is no next focus target.
+      if (event.relatedTarget && !menu.contains(event.relatedTarget)) menu.open = false;
     });
   });
   document.querySelectorAll('[data-team-dialog]').forEach(trigger => {
@@ -58,5 +60,10 @@ function initializeSchedule() {
   });
 }
 document.addEventListener('scheduler:page', initializeSchedule);
+document.addEventListener('click', event => {
+  document.querySelectorAll('.shift-menu[open]').forEach(menu => {
+    if (!menu.contains(event.target)) menu.open = false;
+  });
+});
 initializeSchedule();
 })();
