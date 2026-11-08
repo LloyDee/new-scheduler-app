@@ -281,7 +281,9 @@ body:has(.volunteer-dialog[open]) {
 .transfer-help-danger > button { color: #b42318; min-width: 44px; min-height: 44px; }
 .transfer-help-danger [role="tooltip"] { left: 0; right: auto; color: #b42318; border-color: #b42318; background: #fff1f0; }
 @media (max-width: 600px) {
-    .transfer-help-danger [role="tooltip"] { left: auto; right: 0; }
+    .transfer-source { position: relative; }
+    .transfer-source .transfer-help-danger { position: static; }
+    .transfer-source .transfer-help-danger [role="tooltip"] { left: 0; right: auto; width: min(300px, 100%); box-sizing: border-box; }
     [data-transfer-review] > form { display: flex; }
     [data-transfer-review] > form > button { flex: 1; }
     #transfer-volunteer-dialog .transfer-selection-filters { grid-template-columns: minmax(0, 1fr); }

@@ -7,7 +7,7 @@
         </span>
     </div>
 
-    <p><strong>Source event:</strong> <span th:text="${event.name}"></span>
+    <p class="transfer-source"><strong>Source event:</strong> <span th:text="${event.name}"></span>
         <span class="transfer-help transfer-help-danger" th:if="${destinations.isEmpty()}"><button type="button" aria-label="Why no destination events are available" aria-describedby="transfer-destination-help">&#9432;</button>
             <span id="transfer-destination-help" role="tooltip">No destination events available. An event Admin must administer both events.</span>
         </span>
