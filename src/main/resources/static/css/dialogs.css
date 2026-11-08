@@ -86,3 +86,20 @@ body:has(.app-dialog[open]) {
 .shift-volunteer-icon { width: 20px; height: 20px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .shift-details-list li[hidden] { display: none; }
 .shift-details-dialog input { width: 100%; }
+
+/* A single subtle frame wraps each dialog, including team sheets. */
+.app-dialog, .team-sheet {
+    border: 1px solid var(--container-border);
+}
+
+.app-dialog-footer {
+    border-top: 0;
+}
+
+.app-dialog [tabindex="-1"]:focus {
+    outline: none;
+}
+
+:is(.app-dialog, .team-sheet) :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+    border-color: transparent;
+}
