@@ -67,7 +67,7 @@ body:has(.app-dialog[open]) {
 [data-shift-details] { cursor: pointer; }
 .shift-details-trigger { padding: 0; border: 0; border-radius: 4px; background: transparent; color: inherit; font: inherit; text-align: left; }
 .shift-details-trigger:hover { background: transparent; color: var(--green); }
-.shift-details-trigger:focus-visible { outline: 2px solid var(--green); outline-offset: 4px; }
+.shift-details-trigger:focus-visible { outline: none; }
 .shift-details-dialog { cursor: auto; }
 .shift-details-fields { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 16px; }
 .shift-details-fields dt { color: var(--muted); }
