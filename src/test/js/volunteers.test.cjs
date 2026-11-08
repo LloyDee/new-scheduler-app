@@ -64,6 +64,114 @@ test('modified link clicks preserve normal navigation', () => {
 });
 
 const tick = () => new Promise(resolve => setImmediate(resolve));
+function setupTransferSearch() {
+  const inputEvents = {}, formEvents = {}, departmentEvents = {}, pageEvents = {};
+  const timers = new Map(), requests = [];
+  const input = { value: '', addEventListener(name, fn) { inputEvents[name] = fn; } };
+  const department = { value: '', addEventListener(name, fn) { departmentEvents[name] = fn; } };
+  const status = {}, summary = {};
+  const state = { selected: ['11'], replacements: 0 };
+  const results = () => ({
+    setAttribute() {}, removeAttribute() {}, hasAttribute: () => false,
+    replaceWith(next) { state.results = next; state.replacements++; }
+  });
+  state.results = results();
+  const form = {
+    dataset: {}, action: { value: 'ADD', toString: () => '[object HTMLSelectElement]' },
+    getAttribute: name => name === 'action' ? '/events/1/volunteers/transfer' : null,
+    elements: { q: input, departmentId: department },
+    addEventListener(name, fn) { formEvents[name] = fn; },
+    querySelector: selector => ({
+      '[data-transfer-search-status]': status, '[data-transfer-results]': state.results,
+      '[data-transfer-selection-summary]': summary
+    })[selector] || null
+  };
+  vm.runInNewContext(script, {
+    document: { addEventListener(name, fn) { pageEvents[name] = fn; }, querySelectorAll: () => [],
+      querySelector: selector => selector === '[data-transfer-search]' ? form : null },
+    URL, URLSearchParams, AbortController,
+    location: { href: 'https://scheduler.test/events/1/volunteers/transfer' },
+    FormData: class {
+      *[Symbol.iterator]() {
+        yield ['q', input.value]; yield ['departmentId', department.value]; yield ['action', 'ADD'];
+        for (const id of state.selected) yield ['ids', id];
+      }
+      getAll() { return state.selected; }
+    },
+    history: { replaceState() {} },
+    setTimeout(fn) { timers.set(fn, fn); return fn; }, clearTimeout(id) { timers.delete(id); },
+    fetch: (url, options) => new Promise(resolve => requests.push({ url, options, resolve })),
+    DOMParser: class { parseFromString() { return { querySelector: () => results() }; } }
+  });
+  return { input, inputEvents, department, departmentEvents, formEvents, pageEvents, requests, state, summary,
+    flush() { const tasks = [...timers.values()]; timers.clear(); tasks.forEach(fn => fn()); },
+    async respond(index) { requests[index].resolve({ ok: true, text: async () => '' }); await tick(); }
+  };
+}
+
+test('transfer search autocompletes using the form URL despite the Action select', async () => {
+  const s = setupTransferSearch();
+  s.input.value = 'Alex'; s.inputEvents.input();
+  assert.equal(s.requests.length, 0);
+  s.flush();
+  assert.equal(s.requests[0].url.pathname, '/events/1/volunteers/transfer');
+  assert.equal(s.requests[0].url.searchParams.get('q'), 'Alex');
+  assert.equal(s.requests[0].url.searchParams.get('page'), '0');
+  assert.equal(s.requests[0].url.searchParams.get('ids'), '11');
+  await s.respond(0);
+  assert.equal(s.state.replacements, 1);
+  assert.equal(s.summary.textContent, '1 volunteers selected.');
+});
+
+test('transfer department changes filter immediately and All departments clears the filter', async () => {
+  const s = setupTransferSearch();
+  s.department.value = '7'; s.departmentEvents.change();
+  assert.equal(s.requests[0].url.searchParams.get('departmentId'), '7');
+  assert.equal(s.requests[0].url.searchParams.get('page'), '0');
+  await s.respond(0);
+  s.department.value = ''; s.departmentEvents.change();
+  assert.equal(s.requests[1].url.searchParams.get('departmentId'), '');
+  await s.respond(1);
+  assert.equal(s.state.replacements, 2);
+});
+
+test('transfer Next and Previous retain search, department, and selections', async () => {
+  const s = setupTransferSearch();
+  s.input.value = 'Alex'; s.department.value = '7';
+  for (const [index, page] of ['1', '0'].entries()) {
+    let prevented = false;
+    s.formEvents.submit({ submitter: { name: 'page', value: page }, preventDefault() { prevented = true; } });
+    assert.equal(prevented, true);
+    assert.equal(s.requests[index].url.searchParams.get('page'), page);
+    assert.equal(s.requests[index].url.searchParams.get('q'), 'Alex');
+    assert.equal(s.requests[index].url.searchParams.get('departmentId'), '7');
+    assert.equal(s.requests[index].url.searchParams.get('ids'), '11');
+    await s.respond(index);
+  }
+  assert.equal(s.state.replacements, 2);
+});
+
+test('transfer review uses native submission so the review button value reaches the server', () => {
+  const s = setupTransferSearch();
+  let stopped = false;
+  s.formEvents.submit({ submitter: { name: 'review', value: 'true' },
+    stopPropagation() { stopped = true; }, preventDefault() { assert.fail('native review submission blocked'); } });
+  assert.equal(stopped, true);
+  assert.equal(s.requests.length, 0);
+});
+
+test('transfer typing ignores stale results and cancels requests on navigation', async () => {
+  const s = setupTransferSearch();
+  s.input.value = 'A'; s.inputEvents.input(); s.flush();
+  s.input.value = 'Alex'; s.inputEvents.input();
+  assert.equal(s.requests[0].options.signal.aborted, true);
+  await s.respond(0);
+  assert.equal(s.state.replacements, 0);
+  s.flush(); s.pageEvents['scheduler:before-page']();
+  await s.respond(1);
+  assert.equal(s.state.replacements, 0);
+});
+
 function setupSearch() {
   const events = {}, inputEvents = {}, formEvents = {}, timers = new Map(), requests = [];
   const input = { value: '', selectionStart: 2, addEventListener: (name, fn) => { inputEvents[name] = fn; } };
@@ -204,4 +312,36 @@ test('navigation cancels greeting load and ignores late response', async () => {
   assert.equal(state.requests[0].options.signal.aborted, true);
   state.respond(); await pending;
   assert.equal(state.dialog.open, false);
+});
+
+test('profile menus toggle exclusively, dismiss outside and restore focus with Escape', () => {
+  const events = {};
+  const menus = new Map();
+  const toggles = ['one', 'two'].map(id => {
+    menus.set(id, { hidden: true });
+    return { expanded: 'false', focused: false,
+      getAttribute(name) { return name === 'aria-controls' ? id : this.expanded; },
+      setAttribute(name, value) { this.expanded = value; },
+      focus() { this.focused = true; }
+    };
+  });
+  vm.runInNewContext(script, { document: {
+    addEventListener(name, fn) { events[name] = fn; },
+    querySelectorAll(selector) { return selector.includes('aria-expanded') ? toggles.filter(t => t.expanded === 'true') : []; },
+    querySelector(selector) { return selector.includes('aria-expanded') ? toggles.find(t => t.expanded === 'true') : null; },
+    getElementById: id => menus.get(id)
+  } });
+  const click = toggle => events.click({ target: { closest: selector => selector === '.volunteer-menu-toggle' ? toggle : null } });
+  click(toggles[0]);
+  assert.equal(menus.get('one').hidden, false);
+  click(toggles[1]);
+  assert.equal(menus.get('one').hidden, true);
+  assert.equal(menus.get('two').hidden, false);
+  events.keydown({ key: 'Escape', preventDefault() {} });
+  assert.equal(menus.get('two').hidden, true);
+  assert.equal(toggles[1].focused, true);
+  click(toggles[0]); click(null);
+  assert.equal(menus.get('one').hidden, true);
+  click(toggles[0]); click(toggles[0]);
+  assert.equal(menus.get('one').hidden, true);
 });

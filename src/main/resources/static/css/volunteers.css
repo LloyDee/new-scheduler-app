@@ -28,6 +28,12 @@
     overflow-wrap: anywhere;
 }
 
+.volunteer-card > label {
+    position: relative;
+    z-index: 1;
+    width: fit-content;
+}
+
 [id^="volunteer-name-"] { scroll-margin-top: 100px; }
 
 .volunteer-card-main {
@@ -46,19 +52,110 @@
     text-decoration: none;
 }
 
+.volunteer-card-main:focus-visible {
+    outline: none;
+}
+
 .volunteer-card-main:focus-visible::after {
-    outline: 3px solid var(--green);
-    outline-offset: 4px;
+    outline: 1px solid color-mix(in srgb, var(--green) 55%, var(--border));
+    outline-offset: 2px;
 }
 
-.volunteer-card .card-actions {
-    position: relative;
-    z-index: 1;
-    pointer-events: none;
+.volunteer-card .person-heading {
+    padding-right: 40px;
 }
 
-.volunteer-card .card-actions a, .volunteer-card .card-actions button {
-    pointer-events: auto;
+.volunteer-congregation {
+    font-size: .85rem;
+}
+
+.volunteers-page .current-user-name, .volunteer-you {
+    background: var(--green-light);
+    color: var(--green);
+}
+
+.volunteer-you {
+    font-size: .7rem;
+    margin-left: 6px;
+}
+
+.volunteer-card .person-heading h2 {
+    display: inline;
+}
+
+.volunteer-menu {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 2;
+}
+
+.volunteer-menu-toggle {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    border-color: transparent;
+    font-size: 1.5rem;
+}
+
+.volunteer-menu-toggle:hover {
+    background: var(--green-light);
+    color: var(--green);
+    border-color: transparent;
+}
+
+.volunteer-menu-items {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    min-width: 170px;
+    padding: 4px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--paper);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 15%);
+}
+
+.volunteer-menu-items a, .volunteer-menu-items button {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--ink);
+    text-align: left;
+    font: inherit;
+    white-space: nowrap;
+}
+
+.volunteer-menu-items svg {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.volunteer-menu-items a:hover, .volunteer-menu-items button:hover,
+.volunteer-menu-items a:focus-visible, .volunteer-menu-items button:focus-visible {
+    background: var(--green-light);
+    color: var(--green);
+    text-decoration: none;
+}
+
+.volunteer-card:has(.volunteer-menu-toggle[aria-expanded="true"]) {
+    z-index: 3;
 }
 
 .volunteer-icon-line {
@@ -159,3 +256,29 @@ body:has(.volunteer-dialog[open]) {
         width: 100%;
     }
 }
+
+.volunteers-page .volunteer-page-actions { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 12px; }
+.volunteers-page .volunteer-page-actions > .button { width: auto; flex: 0 1 auto; }
+
+.transfer-title { display: flex; align-items: center; gap: 10px; }
+.transfer-title h1 { margin: 0; }
+.transfer-help { position: relative; }
+.transfer-help > button { padding: 4px 8px; background: transparent; color: var(--green); border: 0; }
+.transfer-help [role="tooltip"] {
+    display: none; position: absolute; top: 100%; right: 0; z-index: 5;
+    width: min(300px, 75vw); padding: 12px; border: 1px solid var(--border);
+    border-radius: var(--radius); background: var(--surface, white); color: var(--text, #222);
+    font-size: .85rem; box-shadow: 0 4px 16px #0002;
+}
+.transfer-help:hover [role="tooltip"], .transfer-help:focus-within [role="tooltip"] { display: block; }
+.transfer-volunteer-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; min-width: 0; margin: 0; padding: 8px; }
+.transfer-volunteer-grid > label { display: flex; align-items: center; gap: 6px; min-width: 0; margin: 0; font-size: .8rem; line-height: 1.4; }
+.transfer-volunteer-grid > label input[type="checkbox"] { flex: 0 0 14px; width: 14px; height: 14px; min-height: 0; margin: 0; padding: 0; }
+.transfer-volunteer-grid > label span { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.transfer-volunteer-grid > p { grid-column: 1 / -1; }
+#transfer-volunteer-dialog .filter-bar { gap: 8px; }
+#transfer-volunteer-dialog .app-dialog-footer { margin-top: 12px; }
+#transfer-volunteer-dialog .filter-bar > label { min-width: 0; width: 100%; font-size: .8rem; }
+#transfer-volunteer-dialog .filter-bar input, #transfer-volunteer-dialog .filter-bar select { font-size: .8rem; }
+#transfer-volunteer-dialog [data-transfer-results] > p { font-size: .8rem; overflow-wrap: anywhere; }
+#transfer-volunteer-dialog .card-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: .8rem; }

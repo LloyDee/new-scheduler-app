@@ -81,7 +81,7 @@
   document.addEventListener('submit', event => {
     const form = event.target;
     if (event.defaultPrevented || form.method.toLowerCase() !== 'get' || !form.closest('#main')) return;
-    const url = new URL(form.action, location.href);
+    const url = new URL(form.getAttribute?.('action') || form.action, location.href);
     if (!supported(url)) return;
     url.search = new URLSearchParams(new FormData(form)).toString();
     event.preventDefault();

@@ -48,16 +48,42 @@
           th:text="${row.shift.notes}"
         ></p>
         <div class="assigned-list" th:if="${!row.assignments.isEmpty()}">
-          <div class="assigned-person" th:each="assignment : ${row.assignments}">
+          <div class="assigned-person" th:each="assignment : ${row.previewAssignments(ownVolunteerIds)}" th:classappend="${ownVolunteerIds.contains(assignment.volunteer.id) ? 'is-you' : ''}">
             <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4" /><path d="M4 21v-3a8 8 0 0 1 16 0v3" /></svg>
-            <span th:classappend="${ownVolunteerIds.contains(assignment.volunteer.id) ? 'current-user-name' : ''}" th:text="${assignment.volunteer.name}" th:title="${assignment.volunteer.name}"></span>
+            <span class="assigned-name"><span th:text="${assignment.volunteer.name}"></span> <small class="you-badge" th:if="${ownVolunteerIds.contains(assignment.volunteer.id)}">You</small></span>
           </div>
         </div>
+        <th:block th:if="${row.assignments.size() > 6}">
+          <button type="button" class="text-button volunteer-view-all" th:attr="data-team-dialog=${'team-dialog-' + row.shift.id},aria-controls=${'team-dialog-' + row.shift.id}" aria-haspopup="dialog" th:text="${'View all ' + row.assignments.size() + ' volunteers'}"></button>
+          <dialog class="team-sheet" th:id="${'team-dialog-' + row.shift.id}" th:attr="aria-labelledby=${'team-title-' + row.shift.id}">
+            <div class="team-sheet-heading">
+              <h2 th:id="${'team-title-' + row.shift.id}" th:text="${row.assignments.size() + ' volunteers'}"></h2>
+              <button type="button" class="secondary" data-team-close aria-label="Close volunteer list">&#215;</button>
+            </div>
+            <p th:text="${row.shift.name}"></p>
+            <label>Search volunteers<input type="search" data-team-search placeholder="Search by name" /></label>
+            <p class="sr-only" data-team-count role="status" aria-live="polite"></p>
+            <ul class="team-sheet-list">
+              <li th:each="assignment : ${row.assignments}" th:classappend="${ownVolunteerIds.contains(assignment.volunteer.id) ? 'is-you' : ''}">
+                <span th:text="${assignment.volunteer.name}"></span>
+                <small class="you-badge" th:if="${ownVolunteerIds.contains(assignment.volunteer.id)}">You</small>
+              </li>
+            </ul>
+            <p data-team-empty hidden>No volunteers match your search.</p>
+          </dialog>
+        </th:block>
         <th:block th:if="${editable and canManage}">
+          <details class="shift-menu">
+            <summary aria-label="Shift actions"><span aria-hidden="true">&#8943;</span></summary>
+            <div class="shift-menu-items">
+              <button type="button" th:if="${!assignmentOptions[row.shift.id].isEmpty()}" th:attr="data-assignment-dialog=${'assignment-dialog-' + row.shift.id},aria-controls=${'assignment-dialog-' + row.shift.id}" aria-haspopup="dialog"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 4a3 3 0 0 1 0 6m3 11v-3a6 6 0 0 0-2-4"/></svg> Choose Volunteers</button>
+              <a th:href="@{${base + '/schedule'}(edit=${row.shift.id})}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m15 4 5 5M4 20l5-1L21 7l-5-5L4 14z"/></svg> Edit Shift</a>
+              <form method="post" th:action="@{${base + '/schedule/' + row.shift.id + '/delete'}}" data-confirm="Delete this shift and all its assignments?">
+                <button class="danger"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></svg> Delete Shift</button>
+              </form>
+            </div>
+          </details>
           <th:block th:if="${!assignmentOptions[row.shift.id].isEmpty()}">
-            <button type="button" class="secondary"
-                    th:attr="data-assignment-dialog=${'assignment-dialog-' + row.shift.id},aria-controls=${'assignment-dialog-' + row.shift.id}"
-                    aria-haspopup="dialog">Choose Volunteers...</button>
             <dialog class="app-dialog assignment-dialog" th:id="${'assignment-dialog-' + row.shift.id}"
                     th:attr="aria-labelledby=${'assignment-title-' + row.shift.id}">
               <form method="post" th:action="@{${base + '/schedule/' + row.shift.id + '/assignments'}}">
@@ -82,19 +108,7 @@
           <p class="muted" th:if="${assignmentOptions[row.shift.id].isEmpty()}">
             No available volunteers in this department for this time window.
           </p>
-          <div class="card-actions">
-            <a
-              th:href="@{${base + '/schedule'}(edit=${row.shift.id})}"
-              >Edit shift</a
-            >
-            <form
-              method="post"
-              th:action="@{${base + '/schedule/' + row.shift.id + '/delete'}}"
-              data-confirm="Delete this shift and all its assignments?"
-            >
-              <button class="text-button danger">Delete</button>
-            </form>
-          </div>
+
         </th:block>
       </article>
     </div>

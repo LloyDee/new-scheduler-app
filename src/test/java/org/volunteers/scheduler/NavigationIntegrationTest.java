@@ -46,6 +46,31 @@ class NavigationIntegrationTest {
     }
     String base() { return "/events/" + event.getId(); }
 
+    @Test void volunteerCardsUseMenusAndShortLabelsAndEditorOwnsDelete() throws Exception {
+        owner.setCongregation("North   Central Park Congregation, Chicago");
+        em.flush();
+        String html = mvc.perform(get(base() + "/volunteers").session(session))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(html).contains("View Profile", "Edit Profile", "volunteer-menu-toggle", ">You</span>",
+                ">North Central Park</p>", "North   Central Park Congregation, Chicago")
+                .doesNotContain("class=\"card-actions\"", ">Delete</button>", "Add / Move Profile");
+        // An overseer can manage ordinary volunteers, including their own profile.
+        mvc.perform(get(base() + "/volunteers").session(session).param("edit", owner.getId().toString()))
+                .andExpect(status().isOk()).andExpect(model().attribute("canDeleteVolunteer", true))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("/volunteers/" + owner.getId() + "/delete")));
+        owner.setEventAdministrator(true);
+        em.flush();
+        html = mvc.perform(get(base() + "/volunteers").session(session))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(html).contains("Add / Move Profile</span>", "/volunteers/transfer").doesNotContain("To Be Implemented");
+        owner.getDepartmentRoles().replaceAll((d, role) -> Volunteer.Role.VOLUNTEER);
+        owner.setEventAdministrator(false);
+        em.flush();
+        mvc.perform(get(base() + "/volunteers").session(session).param("edit", owner.getId().toString()))
+                .andExpect(status().isOk()).andExpect(model().attribute("canDeleteVolunteer", false))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString(">Delete</button>"))));
+    }
+
     @Test void sectionResponsesKeepPermissionsAndOmitSharedShell() throws Exception {
         for (String path : List.of(base() + "/home", base() + "/volunteers", base() + "/schedule",
                 base() + "/departments", base() + "/more", "/events", "/logs", "/settings")) {

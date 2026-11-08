@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{shared/layout :: page('Add / Move Profile', 'volunteers', ~{::section})}">
+<body><section class="stack">
+        <div class="transfer-title"><h1>Add / Move Profile</h1>
+        <span class="transfer-help"><button type="button" aria-label="Profile transfer information" aria-describedby="transfer-help-text">ⓘ</button>
+            <span id="transfer-help-text" role="tooltip">Profile information is retained: name, phone, email, congregation and privilege. Shifts and availability are not copied.</span>
+        </span>
+    </div>
+
+    <p th:text="${'Source event: ' + event.name}"></p>
+    <p th:if="${destinations.isEmpty()}">No destination events available. An event Admin must administer both events.</p>
+    <link rel="stylesheet" th:href="@{/css/volunteers.css}"/>
+    <form data-transfer-search method="get" class="card stack" th:action="@{/events/{id}/volunteers/transfer(id=${event.id})}">
+
+        <button type="button" class="secondary" data-transfer-open aria-haspopup="dialog" aria-controls="transfer-volunteer-dialog">Select volunteers</button>
+        <p data-transfer-selection-summary th:text="${ids.size() + ' volunteers selected.'}"></p>
+        <dialog id="transfer-volunteer-dialog" class="app-dialog assignment-dialog" aria-labelledby="transfer-volunteer-title">
+        <div class="app-dialog-content stack">
+        <h2 id="transfer-volunteer-title">Select volunteers</h2>
+        <div class="filter-bar">
+            <label class="grow"><input type="search" name="q" aria-label="Search volunteers" th:value="${q}" placeholder="Name, congregation, phone or email"/></label>
+            <label><select name="departmentId" aria-label="Filter by department">
+                <option value="">All departments</option>
+                <option th:each="d : ${departments}" th:value="${d.id}" th:text="${d.name}" th:selected="${departmentId == d.id}"></option>
+            </select></label>
+
+        </div>
+        <p data-transfer-search-status role="status" aria-live="polite"></p>
+        <div data-transfer-results class="stack">
+        <input th:each="id : ${retainedIds}" type="hidden" name="ids" th:value="${id}"/>
+        <p th:if="${!selectedVolunteers.isEmpty()}"><strong>Selected:</strong> <span th:each="v, stat : ${selectedVolunteers}" th:text="${v.name + (stat.last ? '' : ', ')}"></span></p>
+        <fieldset class="transfer-volunteer-grid">
+            <legend class="sr-only">Select volunteers</legend>
+            <p th:if="${listPage.isEmpty()}">No volunteers match your search or department filter.</p>
+            <label th:each="v : ${listPage.content}">
+                <input type="checkbox" name="ids" th:value="${v.id}" th:checked="${ids.contains(v.id)}"/>
+                <span th:text="${selectionNames[v.id]}" th:title="${v.name}"></span>
+            </label>
+        </fieldset>
+        <nav class="card-actions" aria-label="Volunteer selection pages" th:if="${listPage.totalPages > 1}">
+            <button name="page" th:value="${listPage.number - 1}" th:disabled="${listPage.first}">Previous</button>
+            <span th:text="${'Page ' + (listPage.number + 1) + ' of ' + listPage.totalPages}"></span>
+            <button name="page" th:value="${listPage.number + 1}" th:disabled="${listPage.last}">Next</button>
+        </nav>
+        </div>
+        </div>
+        <div class="app-dialog-footer"><button type="button" data-transfer-done>Done</button></div>
+        </dialog>
+        <label><strong>Destination:</strong><select name="destination">
+            <option value="">Select an event</option>
+            <option th:each="e : ${destinations}" th:value="${e.id}" th:text="${e.name}" th:selected="${destination == e.id}"></option>
+        </select></label>
+        <label>Action<select name="action">
+            <option value="ADD" th:selected="${action == 'ADD'}">Add to event — keep original participation</option>
+            <option value="MOVE" th:selected="${action == 'MOVE'}">Move to event — end original participation</option>
+        </select></label>
+        <p th:if="${reviewWarning != null}" role="alert" th:text="${reviewWarning}"></p>
+        <button type="submit" name="review" value="true">Review summary</button>
+    </form>
+    <div data-transfer-review class="card stack" th:if="${review != null}">
+        <div class="transfer-title"><h2>Review before confirming</h2>
+            <span class="transfer-help"><button type="button" aria-label="Review information" aria-describedby="transfer-review-help">&#9432;</button>
+                <span id="transfer-review-help" role="tooltip"><span th:if="${action == 'MOVE'}">Moving ends source-event roles and administrator access. Historical assignments and profile information are retained. </span>Already added volunteers are skipped, including their source participation. Existing destination profiles and assignments are kept.</span>
+            </span>
+        </div>
+        <p><strong th:text="${review.action.name() + ':'}"></strong> <span th:text="${review.source.name + ' → ' + review.destination.name}"></span></p>
+        <ul><li th:each="row : ${review.rows}">
+            <span th:text="${row.volunteer.name + ': ' + row.status}"></span>
+            <p>Source roles: <span th:if="${row.volunteer.departmentRoles.isEmpty()}">No department role</span>
+                <span th:each="membership : ${row.volunteer.departmentRoles}" th:text="${membership.key.name + ': ' + membership.value.label + '; '}"></span>
+                <span th:if="${row.volunteer.eventAdministrator}">Event administrator</span>
+            </p>
+        </li></ul>
+        <form method="post" th:action="@{/events/{id}/volunteers/transfer(id=${event.id})}">
+            <input th:each="id : ${ids}" type="hidden" name="ids" th:value="${id}"/>
+            <input type="hidden" name="destination" th:value="${destination}"/>
+            <input type="hidden" name="action" th:value="${action}"/>
+            <button th:disabled="${blocked}">Confirm Add/Move</button>
+        </form>
+    </div>
+    <a th:href="@{/events/{id}/volunteers(id=${event.id})}">Back to volunteers</a>
+</section></body></html>

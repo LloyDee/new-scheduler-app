@@ -173,9 +173,17 @@ public class WebController {
             model.addAttribute("revealedVolunteerId", ownId);
         }
         model.addAttribute("filteredVolunteers", visibleVolunteers);
+        Map<Long, String> congregationLabels = new HashMap<>();
+        visibleVolunteers.forEach(v -> congregationLabels.put(v.getId(), v.getCongregation() == null ? "" :
+                java.util.Arrays.stream(v.getCongregation().strip().split("\\s+")).limit(3)
+                        .collect(java.util.stream.Collectors.joining(" "))));
+        model.addAttribute("congregationLabels", congregationLabels);
+        model.addAttribute("canDeleteVolunteer", false);
         Map<String, String> defaults = new HashMap<>();
         if (edit != null) {
             Volunteer v = snapshotVolunteer(data, edit);
+            model.addAttribute("canDeleteVolunteer", access.canManage(session, eventId)
+                    && (!v.isEventAdministrator() || access.canAdminister(session, eventId)));
             defaults.putAll(Map.of("name", v.getName(), "phone", v.getPhone(), "email", v.getEmail(),
                     "congregation", v.getCongregation(), "notes", v.getNotes()));
             if (v.isEventAdministrator() && v.getDepartmentRoles().isEmpty()) defaults.put("departmentChoice", "none");

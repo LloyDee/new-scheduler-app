@@ -124,9 +124,14 @@
                         th:text="${signup ? 'Sign up' : (editId == null ? 'Add volunteer' : 'Save changes')}"
                 ></button
                 >
-                <a th:href="${signup ? '/login' : base + '/volunteers'}"
-                >Cancel</a
-                >
             </form>
+            <div class="volunteer-editor-actions">
+                <a class="button secondary" th:href="${signup ? '/login' : base + '/volunteers'}">Cancel</a>
+            <form th:if="${!signup and editId != null and canDeleteVolunteer == true}"
+                  method="post" th:action="@{${base + '/volunteers/' + editId + '/delete'}}"
+                  data-confirm="Delete this volunteer and all their assignments?">
+                <button class="button secondary danger">Delete</button>
+            </form>
+            </div>
         </aside>
 </body></html>

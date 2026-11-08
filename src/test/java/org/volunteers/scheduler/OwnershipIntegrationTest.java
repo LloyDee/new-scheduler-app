@@ -146,11 +146,11 @@ class OwnershipIntegrationTest {
         scheduler.saveVolunteer(event.getId(), first.getId(), input);
         var files = new HashMap<>(backups.capture(event.getId()).files());
         files.replaceAll((type, bytes) -> {
-            String csv = new String(bytes, java.nio.charset.StandardCharsets.UTF_8).replace("\"scheduler-backup\",\"2\"", "\"scheduler-backup\",\"1\"");
+            String csv = new String(bytes, java.nio.charset.StandardCharsets.UTF_8).replace("\"scheduler-backup\",\"3\"", "\"scheduler-backup\",\"1\"");
             if (type.equals("volunteers")) {
                 var lines = new ArrayList<>(csv.lines().toList());
-                lines.set(1, lines.get(1).replace(",\"eventAdministrator\"", ""));
-                for (int i = 2; i < lines.size(); i++) lines.set(i, lines.get(i).substring(0, lines.get(i).lastIndexOf(',')).replace("VOLUNTEER", "ADMIN"));
+                lines.set(1, lines.get(1).replace(",\"eventAdministrator\",\"participationEnded\"", ""));
+                for (int i = 2; i < lines.size(); i++) lines.set(i, lines.get(i).substring(0, lines.get(i).lastIndexOf(',', lines.get(i).lastIndexOf(',') - 1)).replace("VOLUNTEER", "ADMIN"));
                 csv = String.join("\r\n", lines) + "\r\n";
             }
             return csv.getBytes(java.nio.charset.StandardCharsets.UTF_8);

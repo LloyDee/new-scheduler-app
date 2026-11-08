@@ -88,7 +88,8 @@ public class SchedulerService {
     public Event event(long id) { return events.findById(id).orElseThrow(SchedulerService::notFound); }
     public Volunteer volunteer(long eventId, long id) {
         Volunteer v = volunteers.findById(id).orElseThrow(SchedulerService::notFound);
-        sameEvent(eventId, v.getEvent().getId()); return v;
+        sameEvent(eventId, v.getEvent().getId());
+        require(!v.isParticipationEnded(), "This volunteer's participation has ended."); return v;
     }
     public Department department(long eventId, long id) {
         Department d = departments.findById(id).orElseThrow(SchedulerService::notFound);
@@ -102,7 +103,7 @@ public class SchedulerService {
         Event event = event(id);
         // Resolve map keys before fetching volunteer roles to avoid individual department loads.
         var eventDepartments = departments.findByEventIdOrderByNameAscIdAsc(id);
-        return new Snapshot(event, volunteers.findByEventIdOrderByNameAscIdAsc(id), eventDepartments,
+        return new Snapshot(event, volunteers.findByEventIdOrderByNameAscIdAsc(id).stream().filter(v -> !v.isParticipationEnded()).toList(), eventDepartments,
                 shifts.findByDepartmentEventIdOrderByDateAscStartTimeAscIdAsc(id),
                 assignments.findByShiftDepartmentEventIdOrderByIdAsc(id));
     }
@@ -423,6 +424,13 @@ public class SchedulerService {
         }
     }
     public record ShiftRow(Shift shift, List<Assignment> assignments) {
+        public List<Assignment> previewAssignments(Set<Long> ownIds) {
+            if (assignments.size() <= 6) return assignments;
+            var preview = new ArrayList<>(assignments.subList(0, 5));
+            assignments.stream().filter(a -> ownIds.contains(a.getVolunteer().getId())).findFirst()
+                    .ifPresent(a -> { if (!preview.contains(a)) preview.set(4, a); });
+            return preview;
+        }
         public int getMissing() { return Math.max(0, shift.getRequiredCount() - assignments.size()); }
         public String getStatus() {
             return assignments.size() < shift.getRequiredCount() ? "Underfilled"

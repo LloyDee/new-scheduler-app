@@ -3,8 +3,9 @@ function initializeVolunteers() {
   const triggers = [...document.querySelectorAll('[data-volunteer-dialog]')];
   const openDialog = (dialog, trigger) => {
     if (!dialog || dialog.open || typeof dialog.showModal !== 'function') return false;
+    const focusTarget = trigger?.closest?.('.volunteer-menu')?.querySelector('.volunteer-menu-toggle') || trigger;
     dialog.addEventListener('close', () => {
-      if (trigger) trigger.focus();
+      if (focusTarget) focusTarget.focus();
     }, { once: true });
     dialog.showModal();
     dialog.querySelector('.volunteer-dialog-content').scrollTop = 0;
@@ -131,8 +132,123 @@ function initializeSearch() {
   form.addEventListener('submit', event => { event.preventDefault(); search(); });
   document.addEventListener('scheduler:before-page', () => { disposed = true; invalidate(); }, { once: true });
 }
+function initializeTransferSearch() {
+  const form = document.querySelector('[data-transfer-search]');
+  if (!form || form.dataset.searchBound) return;
+  form.dataset.searchBound = 'true';
+  const input = form.elements.q;
+  const status = form.querySelector('[data-transfer-search-status]');
+  const dialog = form.querySelector('#transfer-volunteer-dialog');
+  const openButton = form.querySelector('[data-transfer-open]');
+  const updateSelectionSummary = () => {
+    const summary = form.querySelector('[data-transfer-selection-summary]');
+    if (summary) summary.textContent = new FormData(form).getAll('ids').length + ' volunteers selected.';
+  };
+  if (dialog && openButton) {
+    openButton.addEventListener('click', () => dialog.showModal());
+    form.querySelector('[data-transfer-done]').addEventListener('click', () => dialog.close());
+    dialog.addEventListener('close', () => { updateSelectionSummary(); openButton.focus(); });
+  }
+  let timer, controller, sequence = 0, disposed = false;
+  const invalidate = () => {
+    clearTimeout(timer);
+    timer = null;
+    controller?.abort();
+    sequence++;
+    form.querySelector('[data-transfer-results]')?.removeAttribute('aria-busy');
+  };
+  async function search(pageNumber = 0) {
+    invalidate();
+    const current = sequence;
+    controller = new AbortController();
+    // The select named "action" shadows the form.action property.
+    const url = new URL(form.getAttribute('action'), location.href);
+    url.search = new URLSearchParams(new FormData(form)).toString();
+    url.searchParams.set('page', pageNumber);
+    status.textContent = 'Searching…';
+    form.querySelector('[data-transfer-results]').setAttribute('aria-busy', 'true');
+    document.querySelector('[data-transfer-review]')?.remove();
+    try {
+      const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', signal: controller.signal });
+      if (disposed || current !== sequence) return;
+      if (response.redirected) { location.assign(response.url); return; }
+      if (!response.ok) throw new Error('Search failed');
+      const page = new DOMParser().parseFromString(await response.text(), 'text/html');
+      if (disposed || current !== sequence) return;
+      const results = page.querySelector('[data-transfer-results]');
+      if (!results) throw new Error('Search failed');
+      form.querySelector('[data-transfer-results]').replaceWith(results);
+      updateSelectionSummary();
+      history.replaceState({ ...history.state, scheduler: true }, '', url);
+      status.textContent = 'Volunteer list updated.';
+    } catch (error) {
+      if (!disposed && current === sequence) status.textContent = 'Search failed. Type again or press Enter to retry.';
+    } finally {
+      if (!disposed && current === sequence) form.querySelector('[data-transfer-results]')?.removeAttribute('aria-busy');
+    }
+  }
+  input.addEventListener('input', () => {
+    invalidate();
+    if (!input.composing) timer = setTimeout(search, 250);
+  });
+  input.addEventListener('compositionstart', () => { input.composing = true; invalidate(); });
+  input.addEventListener('compositionend', () => { input.composing = false; timer = setTimeout(search, 250); });
+  form.elements.departmentId.addEventListener('change', () => search());
+  input.addEventListener('keydown', event => {
+    if (event.key === 'Enter' && !event.isComposing) { event.preventDefault(); search(); }
+  });
+  form.addEventListener('change', event => {
+    if (event.target.name !== 'ids') return;
+    updateSelectionSummary();
+    const pending = timer || form.querySelector('[data-transfer-results]').hasAttribute('aria-busy');
+    invalidate();
+    document.querySelector('[data-transfer-review]')?.remove();
+    if (pending) search();
+  });
+  form.addEventListener('submit', event => {
+    if (event.submitter?.name === 'review') {
+      invalidate();
+      // Native submission includes the review button's name and value.
+      event.stopPropagation();
+      return;
+    }
+    event.preventDefault();
+    search(event.submitter?.name === 'page' ? event.submitter.value : 0);
+  });
+  document.addEventListener('scheduler:before-page', () => { disposed = true; invalidate(); }, { once: true });
+}
+document.addEventListener('scheduler:page', initializeTransferSearch);
+initializeTransferSearch();
 document.addEventListener('scheduler:page', initializeSearch);
 document.addEventListener('scheduler:page', initializeVolunteers);
 initializeVolunteers();
 initializeSearch();
+
+function closeMenus(except) {
+  document.querySelectorAll('.volunteer-menu-toggle[aria-expanded="true"]').forEach(toggle => {
+    if (toggle === except) return;
+    toggle.setAttribute('aria-expanded', 'false');
+    document.getElementById(toggle.getAttribute('aria-controls')).hidden = true;
+  });
+}
+document.addEventListener('click', event => {
+  const toggle = event.target.closest('.volunteer-menu-toggle');
+  if (toggle) {
+    const opening = toggle.getAttribute('aria-expanded') !== 'true';
+    closeMenus();
+    toggle.setAttribute('aria-expanded', String(opening));
+    document.getElementById(toggle.getAttribute('aria-controls')).hidden = !opening;
+  } else if (!event.target.closest('.volunteer-menu') || event.target.closest('.volunteer-menu-items a, .volunteer-menu-items button')) {
+    closeMenus();
+  }
+});
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+  const toggle = document.querySelector('.volunteer-menu-toggle[aria-expanded="true"]');
+  if (toggle) {
+    closeMenus();
+    toggle.focus();
+    event.preventDefault();
+  }
+});
 })();

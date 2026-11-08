@@ -115,7 +115,7 @@ class BackupIntegrationTest extends ManagerAccessFixture {
         for (String kind : List.of("version", "duplicate", "date", "missing")) {
             var files = new HashMap<>(original);
             switch (kind) {
-                case "version" -> files.put("departments", departmentCsv.replace("\"scheduler-backup\",\"2\"", "\"scheduler-backup\",\"99\"").getBytes(StandardCharsets.UTF_8));
+                case "version" -> files.put("departments", departmentCsv.replace("\"scheduler-backup\",\"3\"", "\"scheduler-backup\",\"99\"").getBytes(StandardCharsets.UTF_8));
                 case "duplicate" -> files.put("departments", (departmentCsv + "\"" + department.getId() + "\",\"Duplicate\",\"\"\r\n").getBytes(StandardCharsets.UTF_8));
                 case "date" -> files.put("shifts", shiftCsv.replace("2026-10-29", "2000-01-01").getBytes(StandardCharsets.UTF_8));
                 default -> files.remove("volunteers");

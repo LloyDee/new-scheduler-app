@@ -525,7 +525,7 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         String card = response.substring(response.indexOf("<article class=\"card volunteer-card\""));
         card = card.substring(0, card.indexOf("</article>"));
-        assertThat(card.replaceAll("\\s+", " ")).contains("data-volunteer-dialog", "Assignments →", "Edit", "Delete", "#privilege", "#departments")
+        assertThat(card.replaceAll("\\s+", " ")).contains("data-volunteer-dialog", "View Profile", "Edit Profile", "Add / Move Profile", "#privilege", "#departments")
                 .doesNotContain("alex@example.com", "Private", "tel:", "mailto:");
         String dialog = response.substring(response.indexOf("id=\"volunteer-dialog-" + volunteer.getId() + "\""));
         dialog = dialog.substring(0, dialog.indexOf("</dialog>"));
@@ -555,7 +555,7 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
                 .param("departmentId", department.getId().toString()).param("q", "Alex"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         assertThat(response).contains("id=\"volunteer-assignments\"", "Alex Rivera’s assignments", "Morning shift",
-                "assignments=" + volunteer.getId(), "departmentId=" + department.getId() + "&amp;q=Alex")
+                "view=" + volunteer.getId(), "departmentId=" + department.getId() + "&amp;q=Alex")
                 .doesNotContain("data-open-on-load=\"true\"");
         String panel = response.substring(response.indexOf("id=\"volunteer-assignments\""));
         assertThat(panel.substring(0, panel.indexOf("Close</a>")))

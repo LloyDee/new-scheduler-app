@@ -7,6 +7,10 @@ import java.util.Map;
 @Entity
 @Table(indexes = @Index(name = "idx_volunteer_normalized_phone", columnList = "normalized_phone"))
 public class Volunteer {
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean participationEnded;
+    public boolean isParticipationEnded() { return participationEnded; }
+    public void setParticipationEnded(boolean value) { participationEnded = value; }
     public enum Role {
         // Legacy value retained only for migration and version 1 backups.
         ADMIN("Admin"), OVERSEER("Overseer"), ASSISTANT_OVERSEER("Assistant Overseer"), CAPTAIN("Captain"),KEY_MAN("Key Man"),VOLUNTEER("Volunteer");

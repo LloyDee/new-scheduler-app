@@ -28,7 +28,7 @@ public class BackupService {
     public record Backup(long eventId, String token, Map<String, byte[]> files, Map<String, Integer> counts) implements java.io.Serializable {}
     private static final Map<String, List<String>> HEADERS = Map.of(
         "departments", List.of("id", "name", "description"),
-        "volunteers", List.of("id", "name", "phone", "email", "congregation", "notes", "privilege", "departmentRoles", "eventAdministrator"),
+        "volunteers", List.of("id", "name", "phone", "email", "congregation", "notes", "privilege", "departmentRoles", "eventAdministrator", "participationEnded"),
         "shifts", List.of("id", "departmentId", "name", "date", "startTime", "endTime", "requiredCount", "notes", "volunteerIds"));
     public static boolean supports(String type) {
         return HEADERS.containsKey(type);
@@ -40,10 +40,10 @@ public class BackupService {
         Map<String, List<List<String>>> rows = new HashMap<>();
         HEADERS.keySet().forEach(k -> rows.put(k, new ArrayList<>()));
         for (Department d : data.departments()) rows.get("departments").add(values(d.getId(), d.getName(), d.getDescription()));
-        for (Volunteer v : data.volunteers()) {
+        for (Volunteer v : volunteers.findByEventIdOrderByNameAscIdAsc(eventId)) {
             Map<String, String> roles = new TreeMap<>();
             v.getDepartmentRoles().forEach((d, r) -> roles.put(d.getId().toString(), r.name()));
-            rows.get("volunteers").add(values(v.getId(), v.getName(), v.getPhone(), v.getEmail(), v.getCongregation(), v.getNotes(), v.getPrivilege(), encode(roles), v.isEventAdministrator()));
+            rows.get("volunteers").add(values(v.getId(), v.getName(), v.getPhone(), v.getEmail(), v.getCongregation(), v.getNotes(), v.getPrivilege(), encode(roles), v.isEventAdministrator(), v.isParticipationEnded()));
         }
         for (var r : data.rows()) {
             Shift s = r.shift();
@@ -53,7 +53,7 @@ public class BackupService {
         Map<String, byte[]> files = new HashMap<>(); Map<String, Integer> counts = new HashMap<>();
         rows.forEach((type, records) -> {
             StringBuilder out = new StringBuilder("\ufeff");
-            line(out, List.of("scheduler-backup", "2", token, type)); line(out, HEADERS.get(type));
+            line(out, List.of("scheduler-backup", "3", token, type)); line(out, HEADERS.get(type));
             records.forEach(row -> line(out, row));
             files.put(type, out.toString().getBytes(StandardCharsets.UTF_8)); counts.put(type, records.size());
         });
@@ -110,16 +110,20 @@ public class BackupService {
                 if (bytes == null || bytes.length == 0) throw new IllegalArgumentException("File is required.");
                 var rows = parse(bytes);
                 if (rows.size() < 2 || rows.getFirst().size() != 4 || !rows.getFirst().get(0).equals("scheduler-backup")
-                    || !Set.of("1", "2").contains(rows.getFirst().get(1)) || !rows.getFirst().get(3).equals(type))
+                    || !Set.of("1", "2", "3").contains(rows.getFirst().get(1)) || !rows.getFirst().get(3).equals(type))
                     throw new IllegalArgumentException("Unsupported backup format or wrong file category.");
                 boolean legacy = rows.get(0).get(1).equals("1");
-                List<String> expected = legacy && type.equals("volunteers") ? HEADERS.get(type).subList(0, 8) : HEADERS.get(type);
+                boolean old = !rows.get(0).get(1).equals("3");
+                List<String> expected = old && type.equals("volunteers") ? HEADERS.get(type).subList(0, legacy ? 8 : 9) : HEADERS.get(type);
                 if (!rows.get(1).equals(expected)) throw new IllegalArgumentException("Unsupported backup columns.");
                 if (legacy && type.equals("volunteers")) {
                     for (int i = 2; i < rows.size(); i++) {
                         if (rows.get(i).size() != 8) throw new IllegalArgumentException("Wrong column count.");
                         rows.get(i).add("false");
                     }
+                }
+                if (old && type.equals("volunteers")) {
+                    for (int i = 2; i < rows.size(); i++) rows.get(i).add("false");
                 }
                 UUID.fromString(rows.get(0).get(2));
                 if (token != null && !token.equals(rows.getFirst().get(2))) throw new IllegalArgumentException("Files must belong to the same backup snapshot.");
@@ -142,6 +146,8 @@ public class BackupService {
                 .with(com.fasterxml.jackson.core.JsonParser.Feature.STRICT_DUPLICATE_DETECTION).readValue(r.get(7));
             if (!Set.of("true", "false").contains(r.get(8))) throw new IllegalArgumentException("Invalid administrator flag.");
             v.setEventAdministrator(Boolean.parseBoolean(r.get(8)));
+            if (!Set.of("true", "false").contains(r.get(9))) throw new IllegalArgumentException("Invalid participation flag.");
+            v.setParticipationEnded(Boolean.parseBoolean(r.get(9)));
             for (var role : roles.entrySet()) {
                 Volunteer.Role value = Volunteer.Role.valueOf(role.getValue());
                 if (value == Volunteer.Role.ADMIN) { v.setEventAdministrator(true); value = Volunteer.Role.VOLUNTEER; }

@@ -7,8 +7,9 @@
 <body>
 <section class="volunteers-page">
     <link rel="stylesheet" th:href="@{/css/volunteers.css}"/>
-    <div class="page-heading" th:if="${canManage}">
+    <div class="page-heading volunteer-page-actions" th:if="${canManage}">
         <a class="button" th:href="${base + '/volunteers?create=true'}">+ Add Volunteers</a>
+        <a class="button" th:if="${isAppOwner or canAdminister}" th:href="@{${base + '/volunteers/transfer'}}"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"/></svg><span>Add / Move Profile</span></a>
     </div>
     <dialog class="volunteer-dialog" th:each="v : ${dialogVolunteers}" th:id="${'volunteer-dialog-' + v.id}"
             th:attr="aria-labelledby=${'volunteer-title-' + v.id},data-open-on-load=${openVolunteerId == v.id}">
@@ -171,8 +172,8 @@
               ></span>
                         <div>
                             <span class="badge" th:if="${v.eventAdministrator}">Event administrator</span>
-                            <h2 th:id="${'volunteer-name-' + v.id}" tabindex="-1" th:classappend="${ownVolunteerIds.contains(v.id) ? 'current-user-name' : ''}" th:text="${v.name}"></h2>
-                            <p class="muted"><span th:text="${v.congregation}"></span></p>
+                            <h2 th:id="${'volunteer-name-' + v.id}" tabindex="-1" th:classappend="${ownVolunteerIds.contains(v.id) ? 'current-user-name' : ''}" th:text="${v.name}"></h2><span class="badge volunteer-you" th:if="${ownVolunteerIds.contains(v.id)}">You</span>
+                            <p class="muted volunteer-congregation" th:text="${congregationLabels[v.id]}"></p>
                         </div>
                     </div>
                     <div class="contact-details">
@@ -189,19 +190,19 @@
                             <span th:text="${membership.key.name + ' ' + membership.value.label}"></span></p>
                     </div>
                 </a>
-                <div class="card-actions">
-                    <a th:href="@{${base + '/volunteers'}(assignments=${v.id},departmentId=${departmentId},q=${q})} + '#volunteer-assignments'">Assignments
-                        →</a>
-                    <a th:if="${(canManage and (!v.eventAdministrator or canAdminister)) or ownVolunteerIds.contains(v.id)}" th:href="@{${base + '/volunteers'}(edit=${v.id})}"
-                    >Edit</a
-                    >
-                    <form th:if="${canManage and (!v.eventAdministrator or canAdminister)}"
-                            method="post"
-                            th:action="@{${base + '/volunteers/' + v.id + '/delete'}}"
-                            data-confirm="Delete this volunteer and all their assignments?"
-                    >
-                        <button class="text-button danger">Delete</button>
-                    </form>
+                <div class="volunteer-menu">
+                    <button type="button" class="volunteer-menu-toggle" aria-expanded="false"
+                            th:attr="aria-controls=${'volunteer-menu-' + v.id},aria-label=${'Profile actions for ' + v.name}">
+                        <span aria-hidden="true">&#8943;</span>
+                    </button>
+                    <div class="volunteer-menu-items" hidden th:id="${'volunteer-menu-' + v.id}">
+                        <a th:href="@{${base + '/volunteers'}(view=${v.id},departmentId=${departmentId},q=${q})}"
+                           th:attr="data-volunteer-dialog=${'volunteer-dialog-' + v.id},aria-controls=${'volunteer-dialog-' + v.id}"
+                           aria-haspopup="dialog"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#people"/></svg><span>View Profile</span></a>
+                        <a th:if="${(canManage and (!v.eventAdministrator or canAdminister)) or ownVolunteerIds.contains(v.id)}"
+                           th:href="@{${base + '/volunteers'}(edit=${v.id})}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m15 5 4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15Z"/></svg><span>Edit Profile</span></a>
+                        <a th:if="${isAppOwner or canAdminister}" th:href="@{${base + '/volunteers/transfer'}(ids=${v.id})}"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"/></svg><span>Add / Move Profile</span></a>
+                    </div>
                 </div>
             </article>
             <nav th:replace="~{shared/fragments :: pagination(${listPage}, @{${base + '/volunteers'}(page=${listPage.number - 1},departmentId=${departmentId},q=${q})}, @{${base + '/volunteers'}(page=${listPage.number + 1},departmentId=${departmentId},q=${q})})}"></nav>

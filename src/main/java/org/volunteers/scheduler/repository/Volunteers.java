@@ -18,12 +18,12 @@ public interface Volunteers extends JpaRepository<Volunteer, Long> {
         select v.id as volunteerId, v.name as name, v.eventAdministrator as eventAdministrator, v.event.id as eventId,
                key(roles).id as departmentId, value(roles) as role
         from Volunteer v left join v.departmentRoles roles
-        where v.normalizedPhone = :phone
+        where v.normalizedPhone = :phone and v.participationEnded = false
         """)
     List<AccessRow> findAccessByPhone(@org.springframework.data.repository.query.Param("phone") String phone);
 
     String PAGE_FILTER = """
-        from Volunteer v where v.event.id = :eventId
+        from Volunteer v where v.event.id = :eventId and v.participationEnded = false
         and (:departmentId is null or exists
             (select member.id from Volunteer member join member.departmentRoles roles
              where member.id = v.id and key(roles).id = :departmentId))
