@@ -215,7 +215,7 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         card = html.substring(html.indexOf("id=\"shift-" + shift.getId() + "\""));
         card = card.substring(0, card.indexOf("</article>"));
-        assertThat(card).contains("Choose Volunteers...", "checked=\"checked\"")
+        assertThat(card).contains("Choose Volunteers", "checked=\"checked\"")
                 .doesNotContain("No available volunteers in this department");
     }
 
@@ -720,7 +720,7 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
         var result = mvc.perform(get("/events/" + event.getId() + "/schedule"))
                 .andExpect(status().isOk()).andReturn();
         String html = result.getResponse().getContentAsString();
-        assertThat(html).contains("Choose Volunteers...", "assignment-dialog", "name=\"volunteerIds\"",
+        assertThat(html).contains("Choose Volunteers", "assignment-dialog", "name=\"volunteerIds\"",
                 "data-assignment-submit>Save").doesNotContain("class=\"assignment-form\"");
         @SuppressWarnings("unchecked")
         var options = (Map<Long, List<Volunteer>>) result.getModelAndView().getModel().get("assignmentOptions");
@@ -738,7 +738,7 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
         assertThat(service.snapshot(event.getId()).assignments()).extracting(a -> a.getId()).containsExactly(retainedId);
         String html = mvc.perform(get("/events/" + event.getId() + "/schedule"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        assertThat(html).contains("assigned-person", "checked=\"checked\"", "Choose Volunteers...")
+        assertThat(html).contains("assigned-person", "checked=\"checked\"", "Choose Volunteers")
                 .doesNotContain("chip-remove");
         mvc.perform(post("/events/" + event.getId() + "/schedule/" + shift.getId() + "/assignments")
                 .with(csrf())).andExpect(status().is3xxRedirection())

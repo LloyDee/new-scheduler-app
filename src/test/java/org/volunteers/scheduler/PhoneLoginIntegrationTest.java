@@ -225,9 +225,25 @@ class PhoneLoginIntegrationTest {
         var shift = service.saveShift(event.getId(), null, Map.of("name", "Welcome", "departmentId", department.getId().toString(),
             "date", "2027-06-04", "startTime", "09:00", "endTime", "10:00", "requiredCount", "2"));
         service.assign(event.getId(), shift.getId(), volunteer.getId(), false);
+        var otherInput = profile("2105550101");
+        otherInput.put("departmentRole_" + department.getId(), "VOLUNTEER");
+        var sameName = service.saveVolunteer(event.getId(), null, otherInput);
+        assertThat(sameName.getName()).isEqualTo(volunteer.getName());
+        var otherShift = service.saveShift(event.getId(), null, Map.of("name", "Other welcome", "departmentId", department.getId().toString(),
+            "date", "2027-06-04", "startTime", "10:00", "endTime", "11:00", "requiredCount", "2"));
+        service.assign(event.getId(), otherShift.getId(), sameName.getId(), false);
         mvc.perform(get(base() + "/home").session(session())).andExpect(status().isOk())
             .andExpect(model().attribute("upcoming", org.hamcrest.Matchers.hasSize(1)))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("current-user-name")));
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("id=\"shift-" + shift.getId() + "\"")))
+            .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("id=\"shift-" + otherShift.getId() + "\""))));
+        String html = mvc.perform(get(base() + "/schedule").session(session()))
+            .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        String ownCard = html.substring(html.indexOf("id=\"shift-" + shift.getId() + "\""));
+        ownCard = ownCard.substring(0, ownCard.indexOf("</article>"));
+        assertThat(ownCard).contains("assigned-person is-you", "class=\"you-badge\">You</small>");
+        String otherCard = html.substring(html.indexOf("id=\"shift-" + otherShift.getId() + "\""));
+        otherCard = otherCard.substring(0, otherCard.indexOf("</article>"));
+        assertThat(otherCard).contains("assigned-person", sameName.getName()).doesNotContain("is-you", "you-badge");
     }
     @Test void logoutEndsSessionAndCsrfIsRequired() throws Exception {
         mvc.perform(post("/login").param("phone", "2105550100")).andExpect(status().isForbidden());

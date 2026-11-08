@@ -184,7 +184,7 @@ class VolunteerTransferIntegrationTest {
             .andExpect(status().isOk()).andExpect(model().attribute("retainedIds", List.of(person.getId())))
             .andExpect(model().attribute("selectionNames", Map.of(other.getId(), "Morgan Rivera")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("role=\"tooltip\"")))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("transfer-volunteer-grid")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("data-transfer-results")))
             .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Search / Filter"))))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("value=\"" + other.getId() + "\"")));
         mvc.perform(get("/events/" + source + "/volunteers/transfer").session(owner)
