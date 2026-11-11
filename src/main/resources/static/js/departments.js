@@ -37,11 +37,15 @@
         items.hidden = !opening;
         toggle.setAttribute('aria-expanded', String(opening));
       });
+      let tabbing = false;
+      menu.addEventListener('pointerdown', () => { tabbing = false; });
       menu.addEventListener('keydown', event => {
+        tabbing = event.key === 'Tab';
         if (event.key === 'Escape') { closeMenu(menu); toggle.focus(); event.stopPropagation(); }
       });
       menu.addEventListener('focusout', event => {
-        if (event.relatedTarget && !menu.contains(event.relatedTarget)) closeMenu(menu);
+        // Pointer focus changes can precede a mobile click; only Tab dismisses on blur.
+        if (tabbing && event.relatedTarget && !menu.contains(event.relatedTarget)) closeMenu(menu);
       });
       menu.querySelector('[data-department-open]').addEventListener('click', event => {
         closeMenu(menu);

@@ -56,13 +56,15 @@ function initializeSchedule() {
       toggle.setAttribute('aria-expanded', String(!items.hidden));
       if (!items.hidden) items.querySelector('[data-assignment-dialog], a, button')?.focus();
     });
+    let tabbing = false;
+    menu.addEventListener('pointerdown', () => { tabbing = false; });
     menu.addEventListener('keydown', event => {
+      tabbing = event.key === 'Tab';
       if (event.key === 'Escape') { closeShiftMenu(menu); toggle.focus(); }
     });
     menu.addEventListener('focusout', event => {
-      // Touch browsers can blur the toggle without focusing the tapped action.
-      // Let the click finish when there is no next focus target.
-      if (event.relatedTarget && !menu.contains(event.relatedTarget)) closeShiftMenu(menu);
+      // Pointer focus changes can precede a mobile click; only Tab dismisses on blur.
+      if (tabbing && event.relatedTarget && !menu.contains(event.relatedTarget)) closeShiftMenu(menu);
     });
   });
   document.querySelectorAll('[data-team-dialog]').forEach(trigger => {

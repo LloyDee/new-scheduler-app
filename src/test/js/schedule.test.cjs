@@ -77,17 +77,28 @@ test('assignment picker searches, counts hidden selections, and opens without fo
   assert.ok(choices.every(c => !c.hidden));
 });
 
-test('three-dot menu focuses Choose Volunteers when opened', () => {
+test('three-dot menu focuses Choose Volunteers and survives pointer blur before activation', () => {
   const listeners = [];
   const el = props => Object.assign({ dataset: {}, addEventListener(type, fn) { listeners.push([this, type, fn]); }, focus() { this.focused = true; }, setAttribute() {} }, props);
   const choose = el({}), toggle = el({}), items = { hidden: true, querySelector: () => choose };
-  const menu = el({ querySelector: s => s === '.shift-menu-toggle' ? toggle : items });
+  const menu = el({ contains: target => target === toggle || target === choose, querySelector: s => s === '.shift-menu-toggle' ? toggle : items });
   const document = { querySelectorAll: s => s === '.shift-menu' ? [menu] : [], addEventListener() {} };
   vm.runInNewContext(readFileSync('src/main/resources/static/js/schedule.js', 'utf8'), { document });
   const click = listeners.find(([target, type]) => target === toggle && type === 'click')[2];
   click();
   assert.equal(items.hidden, false);
   assert.equal(choose.focused, true);
+  const emit = (type, event = {}) => listeners.find(([target, name]) => target === menu && name === type)[2](event);
+  emit('keydown', { key: 'Tab' });
+  emit('pointerdown');
+  emit('focusout', { relatedTarget: {} });
+  assert.equal(items.hidden, false, 'pointer blur must not hide the action before click');
+  emit('keydown', { key: 'Tab' });
+  emit('focusout', { relatedTarget: choose });
+  assert.equal(items.hidden, false);
+  emit('focusout', { relatedTarget: {} });
+  assert.equal(items.hidden, true, 'Tab out still dismisses the menu');
+  click();
   click();
   assert.equal(items.hidden, true);
 });

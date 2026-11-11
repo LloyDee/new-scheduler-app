@@ -49,3 +49,18 @@ test('card taps ignore controls, menu surfaces and selected text', () => {
   s.card.fire('click', {target: {closest: () => null}});
   assert.equal(s.dialog.opens, 0);
 });
+
+test('mobile focus changes leave actions clickable while Tab out dismisses', () => {
+  const s = setup(); const menu = s.menus[0];
+  menu.toggle.fire('click');
+  menu.fire('keydown', {key: 'Tab'});
+  menu.fire('pointerdown');
+  menu.fire('focusout', {relatedTarget: {}});
+  assert.equal(menu.items.hidden, false);
+  menu.open.fire('click', {currentTarget: menu.open});
+  assert.equal(s.dialog.opens, 1);
+  menu.toggle.fire('click');
+  menu.fire('keydown', {key: 'Tab'});
+  menu.fire('focusout', {relatedTarget: {}});
+  assert.equal(menu.items.hidden, true);
+});
