@@ -364,10 +364,10 @@
 }
 
 .container.signed-in-container {
-    padding-top: 8px;
+    padding-top: 0;
 }
 
-.user-greeting {
+.card-actions.user-greeting {
     margin-top: 0;
     justify-content: space-between;
     flex-wrap: nowrap;

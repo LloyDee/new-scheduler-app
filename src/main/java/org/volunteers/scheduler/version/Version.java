@@ -3,7 +3,7 @@ package org.volunteers.scheduler.version;
 public final class Version {
     private final String YEAR = "2027";
     private final String VERSION_NAME = "Scheduler Application";
-    private final String VERSION_NUMBER = "3.15";
+    private final String VERSION_NUMBER = "24.14";
 
     public String getYear() { return YEAR; }
     public String getVersionName() { return VERSION_NAME; }
