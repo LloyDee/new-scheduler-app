@@ -51,6 +51,7 @@
       document.title = nextMain.dataset.pageTitle;
       document.dispatchEvent(new Event('scheduler:page'));
       nextMain.focus({ preventScroll: true });
+      scroll = scroll || window.schedulerListScroll?.(url);
       if (scroll) window.scrollTo(...scroll);
       else if (url.hash) {
         const target = document.getElementById(decodeURIComponent(url.hash.slice(1)));

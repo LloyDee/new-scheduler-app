@@ -46,6 +46,33 @@ class NavigationIntegrationTest {
     }
     String base() { return "/events/" + event.getId(); }
 
+    @Test void saveReturnsToFilteredVolunteerPage() throws Exception {
+        String target = base() + "/volunteers?departmentId=" + department.getId() + "&q=Alex%20%26%20Sam&page=2&scroll=730";
+        mvc.perform(post(base() + "/volunteers/save").session(session).with(csrf())
+                .param("id", owner.getId().toString()).param("name", "Alex Actual")
+                .param("phone", owner.getPhone()).param("congregation", "Central")
+                .param("privilege", "PUBLISHER").param("departmentRole_" + department.getId(), "OVERSEER")
+                .param("returnTo", target))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl(target));
+    }
+
+    @Test void failedShiftSaveKeepsContextForRetry() throws Exception {
+        String target = base() + "/schedule?departmentId=" + department.getId() + "&date=2027-06-04&page=2&view=needs&scroll=930";
+        String url = mvc.perform(post(base() + "/schedule/save").session(session).with(csrf())
+                .param("returnTo", target).param("name", ""))
+                .andExpect(status().is3xxRedirection()).andReturn().getResponse().getRedirectedUrl();
+        assertThat(url).startsWith(target + "&create=true&returnTo=");
+        assertThat(java.net.URLDecoder.decode(url.substring(url.indexOf("&returnTo=") + 10), java.nio.charset.StandardCharsets.UTF_8))
+                .isEqualTo(target);
+    }
+
+    @Test void foreignReturnUrlIsIgnored() throws Exception {
+        mvc.perform(post(base() + "/schedule/save").session(session).with(csrf())
+                .param("returnTo", "https://example.com/schedule").param("name", ""))
+                .andExpect(redirectedUrl(base() + "/schedule?create=true"));
+    }
+
     @Test void volunteerCardsUseMenusAndShortLabelsAndEditorOwnsDelete() throws Exception {
         owner.setCongregation("North   Central Park Congregation, Chicago");
         em.flush();
