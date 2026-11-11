@@ -1,3 +1,4 @@
+const { SchedulerDialogs } = require('./helpers/dialogs.cjs');
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
@@ -19,7 +20,7 @@ function setup(autoOpen = false, scrollGreeting = false, visible = true, reduced
   };
   const name = { focus() { this.focused = true; }, scrollIntoView(options) { this.behavior = options.behavior; } };
   if (scrollGreeting) trigger.dataset.volunteerScroll = 'volunteer-name-1';
-  vm.runInNewContext(script, { window: { matchMedia: () => ({ matches: reducedMotion }) }, document: {
+  vm.runInNewContext(script, { SchedulerDialogs, window: { matchMedia: () => ({ matches: reducedMotion }) }, document: {
     addEventListener() {},
     querySelectorAll: () => [trigger],
     getElementById: id => id === 'volunteer-name-1' ? (visible ? name : null) : id === dialog.id ? dialog : null,
@@ -86,7 +87,7 @@ function setupTransferSearch() {
       '[data-transfer-selection-summary]': summary
     })[selector] || null
   };
-  vm.runInNewContext(script, {
+  vm.runInNewContext(script, { SchedulerDialogs,
     document: { addEventListener(name, fn) { pageEvents[name] = fn; }, querySelectorAll: () => [],
       querySelector: selector => selector === '[data-transfer-search]' ? form : null },
     URL, URLSearchParams, AbortController,
@@ -190,7 +191,7 @@ function setupSearch() {
     querySelector: selector => ({ '[data-volunteer-search]': form, '[data-search-status]': status,
       '[data-volunteer-results]': state.results })[selector] || null
   };
-  vm.runInNewContext(script, { document,
+  vm.runInNewContext(script, { SchedulerDialogs, document,
     URL, URLSearchParams, AbortController, AbortSignal,
     location: { href: form.action },
     FormData: class { *[Symbol.iterator]() { yield ['q', input.value]; yield ['departmentId', '7']; } },
@@ -263,7 +264,7 @@ function setupRemoteDialog() {
     setAttribute: (name, value) => attributes.set(name, value),
     removeAttribute: name => attributes.delete(name), after() {}, focus() { this.focused = true; },
     addEventListener: (_, fn) => { click = fn; } };
-  vm.runInNewContext(script, { document: {
+  vm.runInNewContext(script, { SchedulerDialogs, document: {
     addEventListener(name, fn) { events[name] = fn; },
     querySelectorAll: () => [trigger], querySelector: () => null,
     createElement: () => status,
@@ -325,7 +326,7 @@ test('profile menus toggle exclusively, dismiss outside and restore focus with E
       focus() { this.focused = true; }
     };
   });
-  vm.runInNewContext(script, { document: {
+  vm.runInNewContext(script, { SchedulerDialogs, document: {
     addEventListener(name, fn) { events[name] = fn; },
     querySelectorAll(selector) { return selector.includes('aria-expanded') ? toggles.filter(t => t.expanded === 'true') : []; },
     querySelector(selector) { return selector.includes('aria-expanded') ? toggles.find(t => t.expanded === 'true') : null; },

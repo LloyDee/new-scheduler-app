@@ -4,11 +4,7 @@ function initializeVolunteers() {
   const openDialog = (dialog, trigger) => {
     if (!dialog || dialog.open || typeof dialog.showModal !== 'function') return false;
     const focusTarget = trigger?.closest?.('.volunteer-menu')?.querySelector('.volunteer-menu-toggle') || trigger;
-    dialog.addEventListener('close', () => {
-      if (focusTarget) focusTarget.focus();
-    }, { once: true });
-    dialog.showModal();
-    dialog.querySelector('.volunteer-dialog-content').scrollTop = 0;
+    SchedulerDialogs.open(dialog, focusTarget);
     return true;
   };
   triggers.forEach(trigger => {
@@ -145,9 +141,9 @@ function initializeTransferSearch() {
     if (summary) summary.textContent = new FormData(form).getAll('ids').length + ' volunteers selected.';
   };
   if (dialog && openButton) {
-    openButton.addEventListener('click', () => dialog.showModal());
-    form.querySelector('[data-transfer-done]').addEventListener('click', () => dialog.close());
-    dialog.addEventListener('close', () => { updateSelectionSummary(); openButton.focus(); });
+    openButton.addEventListener('click', () => SchedulerDialogs.open(dialog, openButton, { unsaved: true }));
+    form.querySelector('[data-transfer-done]').addEventListener('click', () => SchedulerDialogs.close(dialog, { commit: true }));
+    dialog.addEventListener('close', () => { updateSelectionSummary(); });
   }
   let timer, controller, sequence = 0, disposed = false;
   const invalidate = () => {

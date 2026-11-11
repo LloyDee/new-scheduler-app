@@ -1,3 +1,4 @@
+const { SchedulerDialogs } = require('./helpers/dialogs.cjs');
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const {readFileSync} = require('node:fs');
@@ -14,7 +15,7 @@ function setup(auto = false) {
   const card = el({dataset: {departmentCard: 'dialog'}, querySelector: () => cardTitle});
   const selection = {value: ''};
   const document = el({getElementById: () => dialog, querySelectorAll: s => s === '.department-menu' ? menus : s === '[data-department-card]' ? [card] : [dialog], querySelector: () => menus[0].toggle});
-  vm.runInNewContext(readFileSync('src/main/resources/static/js/departments.js','utf8'), {document, window: {getSelection: () => selection.value}});
+  vm.runInNewContext(readFileSync('src/main/resources/static/js/departments.js','utf8'), { SchedulerDialogs, document, window: {getSelection: () => selection.value}});
   return {document, menus, dialog, title, content, card, cardTitle, selection};
 }
 test('menus open exclusively, dismiss outside and restore focus with Escape', () => {

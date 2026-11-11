@@ -1,3 +1,4 @@
+const { SchedulerDialogs } = require('./helpers/dialogs.cjs');
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
@@ -15,7 +16,7 @@ function setup(names = ['Alice', 'Bob']) {
   const page = {};
   const document = { querySelectorAll: selector => selector === '[data-shift-details]' ? [card] : [], getElementById: () => dialog, addEventListener: (name, fn) => { page[name] = fn; } };
   const selection = { value: '' };
-  vm.runInNewContext(readFileSync('src/main/resources/static/js/schedule.js', 'utf8'), { document, window: { getSelection: () => selection.value } });
+  vm.runInNewContext(readFileSync('src/main/resources/static/js/schedule.js', 'utf8'), { SchedulerDialogs, document, window: { getSelection: () => selection.value } });
   return { emit, card, title, viewAll, dialog, search, people, count, empty, content, heading, page, selection };
 }
 test('card tap opens details, resets scroll and focuses title; repeated initialization is safe', () => {
@@ -55,7 +56,7 @@ test('assignment picker searches, counts hidden selections, and opens without fo
     querySelector: s => ({ form, '[data-assignment-search]': search, 'h2': heading, '[data-assignment-count]': count, '[data-assignment-empty]': empty, '[data-assignment-cancel]': cancel, '.app-dialog-content': content })[s] });
   const trigger = el({ dataset: { assignmentDialog: 'assign' }, closest: () => null });
   const document = { querySelectorAll: s => s === '[data-assignment-dialog]' ? [trigger] : [], getElementById: () => dialog, addEventListener() {} };
-  vm.runInNewContext(readFileSync('src/main/resources/static/js/schedule.js', 'utf8'), { document });
+  vm.runInNewContext(readFileSync('src/main/resources/static/js/schedule.js', 'utf8'), { SchedulerDialogs, document });
   emit(trigger, 'click');
   assert.equal(heading.focused, true);
   assert.equal(search.focused, undefined);
@@ -83,7 +84,7 @@ test('three-dot menu focuses Choose Volunteers and survives pointer blur before 
   const choose = el({}), toggle = el({}), items = { hidden: true, querySelector: () => choose };
   const menu = el({ contains: target => target === toggle || target === choose, querySelector: s => s === '.shift-menu-toggle' ? toggle : items });
   const document = { querySelectorAll: s => s === '.shift-menu' ? [menu] : [], addEventListener() {} };
-  vm.runInNewContext(readFileSync('src/main/resources/static/js/schedule.js', 'utf8'), { document });
+  vm.runInNewContext(readFileSync('src/main/resources/static/js/schedule.js', 'utf8'), { SchedulerDialogs, document });
   const click = listeners.find(([target, type]) => target === toggle && type === 'click')[2];
   click();
   assert.equal(items.hidden, false);

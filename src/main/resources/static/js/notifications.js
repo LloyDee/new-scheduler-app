@@ -125,7 +125,7 @@
     generation++;
     pending = [];
     messages.replaceChildren();
-    dialog.showModal();
+    SchedulerDialogs.open(dialog, bell);
     load();
   });
   retry.addEventListener('click', load);
@@ -133,7 +133,6 @@
     generation++;
     pending = [];
     messages.replaceChildren();
-    bell.focus();
     refresh();
   });
   window.addEventListener('focus', refresh);

@@ -5,10 +5,7 @@
   };
   const closeMenus = except => document.querySelectorAll('.department-menu').forEach(menu => { if (menu !== except) closeMenu(menu); });
   const openDialog = (dialog, opener) => {
-    dialog.departmentOpener = opener;
-    dialog.showModal();
-    dialog.querySelector('h2').focus();
-    dialog.querySelector('.app-dialog-content').scrollTop = 0;
+    SchedulerDialogs.open(dialog, opener);
   };
   function initializeDepartments() {
     document.querySelectorAll('[data-department-card]').forEach(card => {
@@ -56,12 +53,6 @@
     document.querySelectorAll('.department-dialog').forEach(dialog => {
       if (dialog.dataset.ready) return;
       dialog.dataset.ready = 'true';
-      dialog.addEventListener('close', () => dialog.departmentOpener?.focus());
-      dialog.addEventListener('click', event => {
-        if (event.target !== dialog) return;
-        const rect = dialog.getBoundingClientRect();
-        if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close();
-      });
       if (dialog.dataset.departmentAutoOpen === 'true') {
         openDialog(dialog, document.querySelector('.department-menu-toggle') || document.querySelector('main h1'));
       }

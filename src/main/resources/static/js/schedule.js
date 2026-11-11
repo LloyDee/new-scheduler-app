@@ -11,7 +11,6 @@ function initializeSchedule() {
     const title = card.querySelector('[data-shift-open]');
     const search = dialog.querySelector('[data-shift-search]');
     const people = [...dialog.querySelectorAll('.shift-details-list li')];
-    let opener = title;
     const filter = () => {
       const query = search?.value.trim().toLocaleLowerCase() || '';
       let count = 0;
@@ -23,12 +22,9 @@ function initializeSchedule() {
       dialog.querySelector('[data-shift-empty]').hidden = !people.length || count !== 0;
     };
     const open = trigger => {
-      opener = trigger;
       if (search) search.value = '';
       filter();
-      dialog.showModal();
-      dialog.querySelector('h2').focus();
-      dialog.querySelector('.app-dialog-content').scrollTop = 0;
+      SchedulerDialogs.open(dialog, trigger);
     };
     card.querySelectorAll('[data-shift-open]').forEach(trigger => {
       trigger.addEventListener('click', () => open(trigger));
@@ -39,12 +35,6 @@ function initializeSchedule() {
       open(title);
     });
     search?.addEventListener('input', filter);
-    dialog.addEventListener('click', event => {
-      if (event.target !== dialog) return;
-      const rect = dialog.getBoundingClientRect();
-      if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close();
-    });
-    dialog.addEventListener('close', () => opener.focus());
   });
   document.querySelectorAll('.shift-menu').forEach(menu => {
     if (menu.dataset.menuReady) return;
@@ -86,17 +76,10 @@ function initializeSchedule() {
     trigger.addEventListener('click', () => {
       search.value = '';
       filter();
-      dialog.showModal();
-      dialog.querySelector('.team-sheet-list').scrollTop = 0;
-      search.focus();
+      SchedulerDialogs.open(dialog, trigger, { focus: search });
     });
     search.addEventListener('input', filter);
-    dialog.querySelector('[data-team-close]').addEventListener('click', () => dialog.close());
-    dialog.addEventListener('click', event => { if (event.target === dialog) {
-      const rect = dialog.getBoundingClientRect();
-      if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close();
-    } });
-    dialog.addEventListener('close', () => trigger.focus());
+    dialog.querySelector('[data-team-close]').addEventListener('click', () => SchedulerDialogs.close(dialog));
   });
   document.querySelectorAll('[data-assignment-dialog]').forEach(trigger => {
     if (trigger.dataset.assignmentReady) return;
@@ -127,12 +110,9 @@ function initializeSchedule() {
       if (menu) closeShiftMenu(menu);
       form.reset();
       filter();
-      dialog.showModal();
-      dialog.querySelector('h2').focus();
-      dialog.querySelector('.app-dialog-content').scrollTop = 0;
+      SchedulerDialogs.open(dialog, menu?.querySelector('.shift-menu-toggle') || trigger, { unsaved: true });
     });
-    dialog.querySelector('[data-assignment-cancel]').addEventListener('click', () => dialog.close());
-    dialog.addEventListener('close', () => trigger.closest('.shift-menu')?.querySelector('.shift-menu-toggle').focus());
+    dialog.querySelector('[data-assignment-cancel]').addEventListener('click', () => SchedulerDialogs.close(dialog));
   });
 }
 document.addEventListener('scheduler:page', initializeSchedule);

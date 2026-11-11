@@ -13,6 +13,7 @@
   history.scrollRestoration = 'manual';
 
   async function navigate(url, push = true, scroll = null) {
+    if (typeof SchedulerDialogs !== 'undefined' && !await SchedulerDialogs.dismissAll()) return;
     if (push && pendingUrl === url.href) return;
     pendingUrl = url.href;
     pending?.abort();
@@ -37,6 +38,9 @@
       const nextMain = documentFragment.getElementById('main');
       const nextNav = documentFragment.querySelector('.bottom-nav');
       if (!nextMain || !nextNav || !nextMain.dataset.pageTitle) throw new Error('Incomplete page');
+      // A detail view may have opened while the page request was in flight.
+      if (typeof SchedulerDialogs !== 'undefined' && !await SchedulerDialogs.dismissAll()) return;
+      if (current !== sequence) return;
       if (push) {
         history.replaceState({ ...history.state, scroll: [scrollX, scrollY] }, '', location.href);
         history.pushState({ scheduler: true, scroll: [0, 0] }, '', url);

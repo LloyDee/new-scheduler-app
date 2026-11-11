@@ -1,3 +1,4 @@
+const { SchedulerDialogs } = require('./helpers/dialogs.cjs');
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
@@ -57,6 +58,7 @@ function setup(items = []) {
       return { ok: !state.failLoad, json: async () => [...state.items] };
     }
   };
+  context.SchedulerDialogs = SchedulerDialogs;
   vm.runInNewContext(script, context);
   return { ...elements, state, windowEvents, documentEvents, advance: ms => { now += ms; }, close: () => { elements.dialog.open = false; elements.dialog.events.close(); } };
 }
