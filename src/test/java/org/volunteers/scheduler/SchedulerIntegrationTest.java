@@ -859,6 +859,7 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
         assertThat(minePage.getTotalElements()).isEqualTo(1);
         assertThat(mine.getResponse().getContentAsString()).contains("Saturday, June 1, 2030", "My shifts", "Needs volunteers", "Sun, Jun 2");
         assertThat(mine.getResponse().getContentAsString()).contains("<select name=\"departmentId\"", "<select name=\"date\"", "<select name=\"view\"");
+        assertThat(mine.getResponse().getContentAsString()).contains("value=\"2030-06-02\"");
         var needs = mvc.perform(get(url).param("view", "needs").param("date", "2030-06-02")
                         .param("departmentId", department.getId().toString()))
                 .andExpect(status().isOk()).andReturn();

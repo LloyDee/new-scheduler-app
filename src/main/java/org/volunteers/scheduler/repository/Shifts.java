@@ -6,10 +6,11 @@ import org.volunteers.scheduler.model.Shift;
 
 public interface Shifts extends JpaRepository<Shift, Long> {
     List<Shift> findByDepartmentEventIdOrderByDateAscStartTimeAscIdAsc(Long eventId);
+    // COALESCE gives PostgreSQL a date type even when the filter is empty.
     String FILTER = """
         from Shift s where s.department.event.id = :eventId
         and (:departmentId is null or s.department.id = :departmentId)
-        and (:date is null or s.date = :date)
+        and s.date = coalesce(:date, s.date)
         and (:view <> 'mine' or exists (select a.id from Assignment a where a.shift = s and a.volunteer.id in :ownIds))
         and (:view <> 'needs' or s.requiredCount > (select count(a) from Assignment a where a.shift = s))
         """;
