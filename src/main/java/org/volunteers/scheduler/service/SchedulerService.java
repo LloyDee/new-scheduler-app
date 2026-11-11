@@ -280,8 +280,6 @@ public class SchedulerService {
         require(new HashSet<>(volunteerIds).size() == volunteerIds.size(), "Choose each volunteer only once.");
         Set<Long> eligible = new HashSet<>();
         snapshot(eventId).availableVolunteers(target).stream()
-                .filter(v -> v.getDepartmentRoles().keySet().stream()
-                        .anyMatch(d -> d.getId().equals(target.getDepartment().getId())))
                 .forEach(v -> eligible.add(v.getId()));
         require(eligible.containsAll(volunteerIds),
                 "One or more selected volunteers are no longer available in this department. Please choose again.");
@@ -302,8 +300,6 @@ public class SchedulerService {
         current.forEach(a -> currentIds.add(a.getVolunteer().getId()));
         Set<Long> eligible = new HashSet<>(currentIds);
         data.availableVolunteers(target).stream()
-                .filter(v -> v.getDepartmentRoles().keySet().stream()
-                        .anyMatch(d -> d.getId().equals(target.getDepartment().getId())))
                 .forEach(v -> eligible.add(v.getId()));
         require(eligible.containsAll(selected),
                 "One or more selected volunteers are no longer available in this department. Please choose again.");

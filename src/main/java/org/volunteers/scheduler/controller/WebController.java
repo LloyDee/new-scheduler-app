@@ -332,8 +332,6 @@ public class WebController {
             assignedVolunteerIds.put(s.getId(), current);
             Set<Long> eligible = new HashSet<>(current);
             data.availableVolunteers(s).stream()
-                    .filter(v -> v.getDepartmentRoles().keySet().stream()
-                            .anyMatch(d -> d.getId().equals(s.getDepartment().getId())))
                     .forEach(v -> eligible.add(v.getId()));
             assignmentOptions.put(s.getId(), data.volunteers().stream()
                     .filter(v -> eligible.contains(v.getId())).toList());

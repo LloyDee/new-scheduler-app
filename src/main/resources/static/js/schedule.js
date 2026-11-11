@@ -101,11 +101,33 @@ function initializeSchedule() {
     const dialog = document.getElementById(trigger.dataset.assignmentDialog);
     if (!dialog) return;
     const form = dialog.querySelector('form');
+    const search = dialog.querySelector('[data-assignment-search]');
+    const selectedOnly = dialog.querySelector('[data-assignment-selected-only]');
+    const choices = [...dialog.querySelectorAll('.assignment-choices label')];
+    const filter = () => {
+      const query = search.value.trim().toLocaleLowerCase();
+      let selected = 0;
+      let shown = 0;
+      choices.forEach(choice => {
+        const checked = choice.querySelector('input').checked;
+        if (checked) selected++;
+        choice.hidden = (selectedOnly.checked && !checked)
+          || !choice.querySelector('span').textContent.toLocaleLowerCase().includes(query);
+        if (!choice.hidden) shown++;
+      });
+      dialog.querySelector('[data-assignment-count]').textContent = selected + ' selected, '
+        + Math.max(0, Number(dialog.dataset.requiredCount) - selected) + ' remaining';
+      dialog.querySelector('[data-assignment-empty]').hidden = shown !== 0;
+    };
+    search.addEventListener('input', filter);
+    form.addEventListener('change', filter);
     trigger.addEventListener('click', () => {
       const menu = trigger.closest('.shift-menu');
       if (menu) closeShiftMenu(menu);
       form.reset();
+      filter();
       dialog.showModal();
+      search.focus();
       dialog.querySelector('.app-dialog-content').scrollTop = 0;
     });
     dialog.querySelector('[data-assignment-cancel]').addEventListener('click', () => dialog.close());

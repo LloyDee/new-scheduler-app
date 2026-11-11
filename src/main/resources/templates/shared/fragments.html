@@ -119,11 +119,14 @@
           </div>
           <th:block th:if="${!assignmentOptions[row.shift.id].isEmpty()}">
             <dialog class="app-dialog assignment-dialog" th:id="${'assignment-dialog-' + row.shift.id}"
-                    th:attr="aria-labelledby=${'assignment-title-' + row.shift.id}">
+                    th:attr="aria-labelledby=${'assignment-title-' + row.shift.id},data-required-count=${row.shift.requiredCount}">
               <form method="post" th:action="@{${base + '/schedule/' + row.shift.id + '/assignments'}}">
                 <div class="app-dialog-content">
                   <h2 th:id="${'assignment-title-' + row.shift.id}">Choose Volunteers</h2>
                   <p><strong th:text="${row.shift.name}"></strong> ? <span th:text="${row.shift.department.name}"></span></p>
+                  <label>Search volunteers<input type="search" data-assignment-search placeholder="Search by name" /></label>
+                  <label class="checkbox-label"><input type="checkbox" data-assignment-selected-only /> Selected only</label>
+                  <p data-assignment-count role="status" aria-live="polite" th:text="${row.assignments.size() + ' selected, ' + row.missing + ' remaining'}"></p>
                   <fieldset class="assignment-choices">
                     <legend class="sr-only">Assigned volunteers</legend>
                     <label class="checkbox-label" th:each="v : ${assignmentOptions[row.shift.id]}">
@@ -131,6 +134,7 @@
                       <span th:text="${v.name}"></span>
                     </label>
                   </fieldset>
+                  <p data-assignment-empty hidden>No volunteers match your filters.</p>
                 </div>
                 <div class="app-dialog-footer">
                   <button type="button" class="secondary" data-assignment-cancel>Cancel</button>

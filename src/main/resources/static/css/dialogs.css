@@ -43,6 +43,7 @@ body:has(.app-dialog[open]) {
 }
 
 .assignment-dialog > form {
+    max-height: calc(100dvh - 32px);
     display: flex;
     flex-direction: column;
     min-height: 0;
@@ -103,3 +104,6 @@ body:has(.app-dialog[open]) {
 :is(.app-dialog, .team-sheet) :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
     border-color: transparent;
 }
+
+.assignment-choices label[hidden] { display: none; }
+.assignment-dialog input[type="search"] { width: 100%; }

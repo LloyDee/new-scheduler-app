@@ -688,6 +688,20 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
         assertThat(service.snapshot(event.getId()).assignments()).hasSize(2);
     }
 
+    @Test void bulkPathsAssignFirstDepartmentToVolunteersWithoutMemberships() {
+        Volunteer first = service.saveVolunteer(event.getId(), null, noDepartmentInput());
+        service.assignBatch(event.getId(), shift.getId(), List.of(first.getId()));
+        assertThat(service.volunteer(event.getId(), first.getId()).getDepartmentRoles())
+                .containsEntry(department, Volunteer.Role.VOLUNTEER);
+        var input = noDepartmentInput();
+        input.put("name", "Another newcomer");
+        Volunteer second = service.saveVolunteer(event.getId(), null, input);
+        service.updateAssignments(event.getId(), shift.getId(), List.of(first.getId(), second.getId()));
+        assertThat(service.volunteer(event.getId(), second.getId()).getDepartmentRoles())
+                .containsEntry(department, Volunteer.Role.VOLUNTEER);
+        assertThat(service.snapshot(event.getId()).assignments()).hasSize(2);
+    }
+
     @Test void batchAssignmentRejectsInvalidSelectionsBeforeSaving() {
         Volunteer unassigned = service.saveVolunteer(event.getId(), null, noDepartmentInput());
         Department other = service.saveDepartment(event.getId(), null, Map.of("name", "Other"));
@@ -697,7 +711,7 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
         Event otherEvent = event("Other event", "REGIONAL_CONVENTION");
         Volunteer foreign = service.saveVolunteer(otherEvent.getId(), null, noDepartmentInput());
         for (List<Long> selection : List.of(List.<Long>of(), List.of(volunteer.getId(), volunteer.getId()),
-                List.of(volunteer.getId(), unassigned.getId()), List.of(volunteer.getId(), wrongDepartment.getId()),
+                List.of(unassigned.getId(), wrongDepartment.getId()),
                 List.of(volunteer.getId(), foreign.getId()), List.of(volunteer.getId(), Long.MAX_VALUE))) {
             assertThatThrownBy(() -> service.assignBatch(event.getId(), shift.getId(), selection))
                     .isInstanceOf(IllegalArgumentException.class);
@@ -715,7 +729,7 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
         assertThat(service.snapshot(event.getId()).assignments()).hasSize(1);
     }
 
-    @Test void scheduleRendersCheckboxDialogForDepartmentMembersOnly() throws Exception {
+    @Test void schedulePickerIncludesVolunteersWithoutDepartments() throws Exception {
         Volunteer unassigned = service.saveVolunteer(event.getId(), null, noDepartmentInput());
         var result = mvc.perform(get("/events/" + event.getId() + "/schedule"))
                 .andExpect(status().isOk()).andReturn();
@@ -724,7 +738,7 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
                 "data-assignment-submit>Save").doesNotContain("class=\"assignment-form\"");
         @SuppressWarnings("unchecked")
         var options = (Map<Long, List<Volunteer>>) result.getModelAndView().getModel().get("assignmentOptions");
-        assertThat(options.get(shift.getId())).containsExactly(volunteer).doesNotContain(unassigned);
+        assertThat(options.get(shift.getId())).containsExactlyInAnyOrder(volunteer, unassigned);
     }
 
     @Test void departmentMenusAndDialogsReplaceInlineCoverage() throws Exception {
@@ -808,8 +822,8 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
         Shift overlapping = service.saveShift(event.getId(), null, shiftInput("09:30", "10:30"));
         service.assign(event.getId(), overlapping.getId(), second.getId(), false);
         Volunteer noDepartment = service.saveVolunteer(event.getId(), null, noDepartmentInput());
-        for (List<Long> selection : List.of(List.of(second.getId()), List.of(Long.MAX_VALUE),
-                List.of(noDepartment.getId()), List.of(volunteer.getId(), volunteer.getId()))) {
+        for (List<Long> selection : List.of(List.of(noDepartment.getId(), second.getId()), List.of(Long.MAX_VALUE),
+                List.of(volunteer.getId(), volunteer.getId()))) {
             assertThatThrownBy(() -> service.updateAssignments(event.getId(), shift.getId(), selection))
                     .isInstanceOf(IllegalArgumentException.class);
             assertThat(service.snapshot(event.getId()).assignments()).hasSize(2);
