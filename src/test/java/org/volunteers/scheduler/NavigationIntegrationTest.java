@@ -77,7 +77,8 @@ class NavigationIntegrationTest {
             String html = mvc.perform(get(path).session(session).header("X-Scheduler-Section", "main"))
                 .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
                 .andReturn().getResponse().getContentAsString();
-            assertThat(html).contains("id=\"main\"", "data-page-title=", "class=\"bottom-nav\"")
+            assertThat(html).contains("id=\"main\"", "data-page-title=", "class=\"bottom-nav\"",
+                    "class=\"active-event-name\">Regional Convention</span>", "Switch active event")
                 .contains("data-own-volunteer-link", path.endsWith("/volunteers")
                     ? "revealSelf=true#volunteer-name-" + owner.getId() : base() + "/volunteers?view=" + owner.getId())
                 .doesNotContain("<html", "<head>", "class=\"app-header\"", "id=\"notification-dialog\"", "<script");
@@ -86,6 +87,25 @@ class NavigationIntegrationTest {
             .andExpect(content().string(org.hamcrest.Matchers.containsString("class=\"app-header\"")));
         mvc.perform(get(base() + "/home").header("X-Scheduler-Section", "main"))
             .andExpect(redirectedUrl("/login"));
+    }
+
+    @Test void eventSwitcherUsesCircuitCodeAndUpdatesWhenNavigating() throws Exception {
+        Event assembly = service.saveEvent(null, Map.of("type", "CIRCUIT_ASSEMBLY",
+            "startDate", "2027-06-04", "assembly", "with Circuit Overseer", "circuit", "FL-58A"));
+        String html = mvc.perform(get("/events/" + assembly.getId() + "/home").session(session)
+                .header("X-Scheduler-Section", "main"))
+            .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(html).contains("class=\"active-event-name\">Circuit Assembly FL-58A</span>",
+            "<summary class=\"active-event-switcher\"", "class=\"event-picker-list\"",
+            "action=\"/events/" + event.getId() + "/select\"",
+            "action=\"/events/" + assembly.getId() + "/select\"")
+            .doesNotContain("event-switch-label", ">Switch</span>");
+        mvc.perform(get("/settings").session(session)).andExpect(status().isOk())
+            .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                "class=\"active-event-name\">Circuit Assembly FL-58A</span>")));
+        mvc.perform(post(base() + "/select").session(session).with(csrf()))
+            .andExpect(redirectedUrl(base() + "/home"));
+        assertThat(session.getAttribute("activeEvent")).isEqualTo(event.getId());
     }
 
     @Test void volunteerDatabasePagesAreStableFilteredAndSupportOffPageDetails() throws Exception {

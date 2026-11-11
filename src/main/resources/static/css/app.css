@@ -472,6 +472,21 @@ textarea {
     border-color: #edc991
 }
 
+  .alert [data-dismiss-notification] {
+      margin-left: 12px;
+  }
+
+  .field-error {
+      display: block;
+      color: var(--amber);
+      font-size: .875rem;
+      margin-top: 4px;
+  }
+
+  [aria-invalid="true"] {
+      border-color: var(--amber);
+  }
+
 .welcome {
     padding: 42px;
     background: #ebf0e5
@@ -1647,7 +1662,70 @@ input, select, textarea { background: var(--surface-tint); border-color: var(--b
 
 /* Keep the signed-in greeting close to the application header. */
 .container.signed-in-container { padding-top: 8px; }
-.user-greeting { margin-top: 0; }
+.user-greeting {
+    margin-top: 0;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 10px;
+    font-size: .75rem;
+}
+.user-account-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: inherit;
+    margin-left: auto;
+    min-width: 0;
+}
+.user-account-actions form { flex-shrink: 0; }
+.user-greeting .active-event-switcher {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0;
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    list-style: none;
+}
+.active-event-name { font-weight: 700; }
+.active-event-switcher::-webkit-details-marker { display: none; }
+.event-picker { position: relative; min-width: 0; }
+.event-picker-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 30;
+    width: min(320px, calc(100vw - 32px));
+    max-height: 50vh;
+    overflow-y: auto;
+    padding: 6px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface, #fff);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 15%);
+}
+.event-picker-list .event-picker-option {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    width: 100%;
+    text-align: left;
+    font-size: .75rem;
+    background: transparent;
+    color: inherit;
+    border: 0;
+    border-radius: 4px;
+}
+.event-picker-option small { width: 100%; }
+.event-picker-option:hover, .event-picker-option[aria-current="true"] { background: var(--border); }
+.user-greeting .text-button { font-size: inherit; padding-inline: 0; }
+@media (max-width: 480px) {
+    .user-greeting { gap: 6px; font-size: .6875rem; }
+    .user-greeting .active-event-switcher { gap: 4px; }
+}
 
 .signup-event-choices { min-width: 0; }
 .signup-event-choice { display: flex; align-items: flex-start; gap: .65rem; margin-block: .75rem; }

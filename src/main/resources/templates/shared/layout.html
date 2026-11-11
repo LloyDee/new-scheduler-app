@@ -103,29 +103,50 @@
       <form method="dialog" class="notification-footer"><button autofocus>Close</button></form>
     </dialog>
     <main id="main" class="container" th:classappend="${session.loginPhone != null ? 'signed-in-container' : ''}" tabindex="-1" th:attr="data-page-title=${title + ' · App'},data-event-id=${event != null ? event.id : null}">
-      <form th:if="${session.loginPhone != null}" method="post" th:action="@{/logout}" class="card-actions user-greeting">
+      <div th:if="${session.loginPhone != null}" class="card-actions user-greeting">
+        <details class="event-picker" th:with="event=${event != null ? event : headerEvent}">
+        <summary class="active-event-switcher" aria-label="Switch active event">
+          <span th:if="${event != null}" class="active-event-name"
+                th:text="${event.type.name() == 'REGIONAL_CONVENTION' ? 'Regional Convention' : 'Circuit Assembly' + (event.circuit != null and !#strings.isEmpty(event.circuit) ? ' ' + event.circuit : '')}">Regional Convention</span>
+          <span th:if="${event == null}">Choose event</span>
+          <span aria-hidden="true">&#9662;</span>
+        </summary>
+        <div class="event-picker-list" aria-label="Existing events">
+          <form th:each="choice : ${switcherEvents}" method="post" th:action="@{/events/{id}/select(id=${choice.id})}">
+            <button type="submit" class="event-picker-option" th:attr="aria-current=${event != null and event.id == choice.id ? 'true' : null}">
+              <span th:text="${choice.name}"></span>
+              <span th:if="${choice.type.name() == 'CIRCUIT_ASSEMBLY' and !#strings.isEmpty(choice.circuit)}" th:text="${choice.circuit}"></span>
+              <small th:text="${#temporals.format(choice.startDate, 'MMM d, yyyy')}"></small>
+            </button>
+          </form>
+          <p th:if="${#lists.isEmpty(switcherEvents)}">No events available.</p>
+        </div>
+        </details>
+        <div class="user-account-actions">
         <a th:if="${currentUserFirstName != null and currentVolunteerId != null}"
            th:href="${tab == 'volunteers'} ? @{${base + '/volunteers'}(q=${q},departmentId=${departmentId},page=${listPage.number},revealSelf=true)} + ${'#volunteer-name-' + currentVolunteerId} : @{${currentVolunteerUrl}}"
            th:attr="data-volunteer-dialog=${'volunteer-dialog-' + currentVolunteerId},data-volunteer-scroll=${tab == 'volunteers' ? 'volunteer-name-' + currentVolunteerId : null},aria-haspopup=${tab == 'volunteers' ? null : 'dialog'}"
            data-own-volunteer-link
            th:text="${'Hi ' + currentUserFirstName}"></a>
         <span th:if="${currentUserFirstName != null and currentVolunteerId == null}" th:text="${'Hi ' + currentUserFirstName}"></span>
-        <button class="text-button">Logout</button><span th:if="${isAppOwner}" class="badge">App Owner</span>
-      </form>
+        <form method="post" th:action="@{/logout}"><button class="text-button">Logout</button></form><span th:if="${isAppOwner}" class="badge">App Owner</span>
+        </div>
+      </div>
       <div
         th:if="${notice != null}"
         class="alert success"
-        data-notification
+        data-notification="success"
         role="status"
         th:text="${notice}"
       ></div>
       <div
         th:if="${error != null}"
         class="alert warning"
-        data-notification
+        data-notification="error"
         role="alert"
-        th:text="${error}"
-      ></div>
+      ><span th:text="${error}"></span>
+        <button type="button" class="text-button" data-dismiss-notification aria-label="Dismiss error">Dismiss</button>
+      </div>
       <th:block th:replace="${content}"></th:block>
     </main>
     <nav class="bottom-nav" aria-label="Main navigation">

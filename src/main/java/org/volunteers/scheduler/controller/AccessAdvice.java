@@ -6,7 +6,10 @@ import org.volunteers.scheduler.service.PhoneAccess;
 @ControllerAdvice
 public class AccessAdvice {
     private final PhoneAccess access;
-    public AccessAdvice(PhoneAccess access) { this.access = access; }
+    private final org.volunteers.scheduler.repository.Events events;
+    public AccessAdvice(PhoneAccess access, org.volunteers.scheduler.repository.Events events) {
+        this.access = access; this.events = events;
+    }
     @ModelAttribute void access(Model model, HttpServletRequest request, HttpSession session, HttpServletResponse response) {
         response.addHeader("Vary", "X-Scheduler-Section");
         model.addAttribute("sectionRequest", "GET".equals(request.getMethod())
@@ -19,6 +22,10 @@ public class AccessAdvice {
         var matcher = java.util.regex.Pattern.compile("^/events/(\\d+)(?:/.*)?$")
                 .matcher(org.springframework.web.util.UrlPathHelper.defaultInstance.getPathWithinApplication(request));
         if (matcher.matches()) eventId = Long.valueOf(matcher.group(1));
+        model.addAttribute("headerEvent", eventId == null ? null : events.findById(eventId).orElse(null));
+        if (session.getAttribute(PhoneAccess.SESSION) != null) {
+            model.addAttribute("switcherEvents", events.findAllByOrderByStartDateDescIdDesc());
+        }
         model.addAttribute("ownVolunteerIds", access.ids(session));
         model.addAttribute("canAdminister", access.canAdminister(session, eventId));
         model.addAttribute("isAppOwner", access.isAppOwner(session));

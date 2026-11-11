@@ -76,6 +76,7 @@ document.querySelectorAll("[data-department-picker]").forEach((picker) => {
 });
 
 document.querySelectorAll("[data-notification]").forEach((notification) => {
+  if (notification.dataset.notification !== "success") return;
   window.setTimeout(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       notification.remove();
@@ -120,6 +121,43 @@ if (eventForm) {
 }
 document.addEventListener('scheduler:page', initializePage);
 initializePage();
+
+// Capture invalid events because native constraint validation does not bubble.
+let fieldErrorId = 0;
+const fieldErrors = new WeakMap();
+function updateFieldError(input) {
+  let error = fieldErrors.get(input);
+  if (input.validity.valid || !input.willValidate) {
+    if (!error) return;
+    error.remove();
+    const descriptions = (input.getAttribute('aria-describedby') || '').split(/\s+/).filter(id => id && id !== error.id);
+    if (descriptions.length) input.setAttribute('aria-describedby', descriptions.join(' '));
+    else input.removeAttribute('aria-describedby');
+    input.removeAttribute('aria-invalid');
+    fieldErrors.delete(input);
+    return;
+  }
+  if (!error) {
+    error = document.createElement('span');
+    error.id = `validation-error-${++fieldErrorId}`;
+    error.className = 'field-error';
+    error.setAttribute('aria-live', 'polite');
+    input.insertAdjacentElement('afterend', error);
+    input.setAttribute('aria-describedby', [input.getAttribute('aria-describedby'), error.id].filter(Boolean).join(' '));
+    fieldErrors.set(input, error);
+  }
+  input.setAttribute('aria-invalid', 'true');
+  error.textContent = input.validationMessage;
+}
+document.addEventListener('invalid', event => updateFieldError(event.target), true);
+for (const type of ['input', 'change']) {
+  document.addEventListener(type, event => {
+    if (fieldErrors.has(event.target)) updateFieldError(event.target);
+  });
+}
+document.addEventListener('click', event => {
+  event.target.closest('[data-dismiss-notification]')?.closest('[data-notification]')?.remove();
+});
 
 document.addEventListener("submit", (event) => {
   const message = event.target.dataset.confirm;
