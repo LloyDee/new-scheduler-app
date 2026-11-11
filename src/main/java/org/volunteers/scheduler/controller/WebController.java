@@ -299,17 +299,30 @@ public class WebController {
     @GetMapping("/events/{eventId}/schedule")
     String schedule(@PathVariable long eventId, @RequestParam(required = false) Long edit,
                     @RequestParam(defaultValue = "false") boolean create,
+                    @RequestParam(defaultValue = "all") String view,
                     @RequestParam(required = false) Long departmentId, @RequestParam(required = false) LocalDate date,
                     @RequestParam(defaultValue = "0") int page,
                     Model model, HttpSession session, HttpServletRequest request) {
         var data = prepare(eventId, model, session);
-        if (request.getParameter("departmentId") == null) departmentId = access.department(session, eventId);
         filter(data, departmentId, date, model);
         @SuppressWarnings("unchecked") var filteredRows = (List<SchedulerService.ShiftRow>) model.getAttribute("rows");
         assert filteredRows != null;
+        if (!Set.of("all", "mine", "needs").contains(view)) view = "all";
+        Set<Long> ownIds = access.ids(session);
+        if (view.equals("mine")) filteredRows = filteredRows.stream()
+                .filter(row -> row.assignments().stream().anyMatch(a -> ownIds.contains(a.getVolunteer().getId()))).toList();
+        if (view.equals("needs")) filteredRows = filteredRows.stream().filter(row -> row.getMissing() > 0).toList();
+        model.addAttribute("scheduleView", view);
+        var eventDays = new TreeSet<LocalDate>();
+        data.event().getStartDate().datesUntil(data.event().getEndDate().plusDays(1)).forEach(eventDays::add);
+        data.shifts().forEach(s -> eventDays.add(s.getDate()));
+        model.addAttribute("eventDays", eventDays);
         var shiftPage = page(filteredRows, page);
         model.addAttribute("listPage", shiftPage);
         model.addAttribute("rows", shiftPage.getContent());
+        Map<LocalDate, List<SchedulerService.ShiftRow>> dayGroups = new LinkedHashMap<>();
+        shiftPage.getContent().forEach(row -> dayGroups.computeIfAbsent(row.shift().getDate(), ignored -> new ArrayList<>()).add(row));
+        model.addAttribute("dayGroups", dayGroups);
         Map<Long, List<Volunteer>> assignmentOptions = new HashMap<>();
         Map<Long, Set<Long>> assignedVolunteerIds = new HashMap<>();
         shiftPage.getContent().stream().map(SchedulerService.ShiftRow::shift).forEach(s -> {

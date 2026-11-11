@@ -83,7 +83,12 @@
     if (event.defaultPrevented || form.method.toLowerCase() !== 'get' || !form.closest('#main')) return;
     const url = new URL(form.getAttribute?.('action') || form.action, location.href);
     if (!supported(url)) return;
-    url.search = new URLSearchParams(new FormData(form)).toString();
+    const fields = new FormData(form);
+    // FormData(form) omits the button that submitted the form.
+    if (event.submitter?.name && !event.submitter.disabled) {
+      fields.append(event.submitter.name, event.submitter.value);
+    }
+    url.search = new URLSearchParams(fields).toString();
     event.preventDefault();
     navigate(url);
   });

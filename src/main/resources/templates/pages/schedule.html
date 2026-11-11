@@ -35,8 +35,7 @@
       </div>
       <div class="workspace list-only">
         <div class="stack">
-          <form class="filter-bar" method="get" th:action="@{${base + '/schedule'}}">
-            <input th:if="${date != null}" type="hidden" name="date" th:value="${date}" />
+          <form class="schedule-filters" method="get" th:action="@{${base + '/schedule'}}">
             <label><span class="sr-only">Filter by department</span>
               <select name="departmentId" aria-label="Filter by department" data-auto-submit>
                 <option value="">All departments</option>
@@ -44,13 +43,34 @@
                         th:text="${department.name}" th:selected="${departmentId == department.id}"></option>
               </select>
             </label>
+            <label th:if="${event.type.name() == 'REGIONAL_CONVENTION'}"><span class="sr-only">Filter by event day</span>
+              <select name="date" aria-label="Filter by event day" data-auto-submit>
+                <option value="">All days</option>
+                <option th:each="day : ${eventDays}" th:value="${day}" th:selected="${day.equals(date)}"
+                        th:text="${#temporals.format(day, 'EEE, MMM d')}"></option>
+              </select>
+            </label>
+            <label><span class="sr-only">Filter shifts</span>
+              <select name="view" aria-label="Filter shifts" data-auto-submit>
+                <option value="all" th:selected="${scheduleView == 'all'}">All shifts</option>
+                <option value="mine" th:selected="${scheduleView == 'mine'}">My shifts</option>
+                <option value="needs" th:selected="${scheduleView == 'needs'}">Needs volunteers</option>
+              </select>
+            </label>
           </form>
           <p
             class="list-count"
             th:text="${listPage.totalElements + ' shifts · ordered by date and time'}"
           ></p>
-          <div th:replace="~{shared/fragments :: shifts(${rows}, true)}"></div>
-          <nav th:replace="~{shared/fragments :: pagination(${listPage}, @{${base + '/schedule'}(page=${listPage.number - 1},departmentId=${departmentId},date=${date})}, @{${base + '/schedule'}(page=${listPage.number + 1},departmentId=${departmentId},date=${date})})}"></nav>
+          <div class="empty card" th:if="${rows.isEmpty()}">
+            <h2>No shifts match these filters</h2>
+            <p>Try another day, department, or shift filter.</p>
+          </div>
+          <section class="schedule-day" th:each="group : ${dayGroups}" th:attr="aria-labelledby=${'schedule-day-' + group.key}">
+            <h2 th:id="${'schedule-day-' + group.key}" th:text="${#temporals.format(group.key, 'EEEE, MMMM d, yyyy')}"></h2>
+            <div th:replace="~{shared/fragments :: shifts(${group.value}, true)}"></div>
+          </section>
+          <nav th:replace="~{shared/fragments :: pagination(${listPage}, @{${base + '/schedule'}(page=${listPage.number - 1},departmentId=${departmentId},date=${date},view=${scheduleView})}, @{${base + '/schedule'}(page=${listPage.number + 1},departmentId=${departmentId},date=${date},view=${scheduleView})})}"></nav>
         </div>
 
       </div>

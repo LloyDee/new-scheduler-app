@@ -827,6 +827,39 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
         if (!hasDepartment) input.put("departmentRole_" + department.getId(), "VOLUNTEER");
         return input;
     }
+    @Test void scheduleFiltersBeforePagingAndGroupsByDay() throws Exception {
+        service.assign(event.getId(), shift.getId(), volunteer.getId(), false);
+        for (int i = 0; i < 26; i++) {
+            var input = shiftInput("11:00", "12:00");
+            input.put("date", "2030-06-02");
+            service.saveShift(event.getId(), null, input);
+        }
+        String url = "/events/" + event.getId() + "/schedule";
+        var mine = mvc.perform(get(url).param("view", "mine"))
+                .andExpect(status().isOk()).andReturn();
+        var minePage = (org.springframework.data.domain.Page<?>) mine.getModelAndView().getModel().get("listPage");
+        assertThat(minePage.getTotalElements()).isEqualTo(1);
+        assertThat(mine.getResponse().getContentAsString()).contains("Saturday, June 1, 2030", "My shifts", "Needs volunteers", "Sun, Jun 2");
+        assertThat(mine.getResponse().getContentAsString()).contains("<select name=\"departmentId\"", "<select name=\"date\"", "<select name=\"view\"");
+        var needs = mvc.perform(get(url).param("view", "needs").param("date", "2030-06-02")
+                        .param("departmentId", department.getId().toString()))
+                .andExpect(status().isOk()).andReturn();
+        var needsPage = (org.springframework.data.domain.Page<?>) needs.getModelAndView().getModel().get("listPage");
+        assertThat(needsPage.getTotalElements()).isEqualTo(26);
+        assertThat(needsPage.getContent()).hasSize(25);
+        assertThat(needs.getResponse().getContentAsString()).contains("Sunday, June 2, 2030", "view=needs", "date=2030-06-02");
+        mvc.perform(get(url).param("view", "needs").param("date", "2030-06-01"))
+                .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("No shifts match these filters")));
+        org.mockito.Mockito.when(phoneAccess.ids(org.mockito.ArgumentMatchers.any())).thenReturn(Set.of());
+        mvc.perform(get(url).param("view", "mine"))
+                .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("No shifts match these filters")));
+        Event assembly = event("Assembly", "CIRCUIT_ASSEMBLY");
+        String assemblyHtml = mvc.perform(get("/events/" + assembly.getId() + "/schedule"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(assemblyHtml).contains("<select name=\"departmentId\"", "<select name=\"view\"")
+                .doesNotContain("<select name=\"date\"");
+    }
+
     private Event event(String name, String type) { return service.saveEvent(null, eventInput(name, type)); }
     private Map<String, String> eventInput(String name, String type) {
         return new HashMap<>(Map.of("name", name, "type", type, "startDate", "2030-06-01", "endDate", "2030-06-03",

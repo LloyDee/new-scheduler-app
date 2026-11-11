@@ -16,6 +16,7 @@ function setup() {
   };
   const context = {
     URL, URLSearchParams, AbortController, AbortSignal, Event, document, location,
+    FormData: class extends URLSearchParams { constructor(form) { super(form.fields); } },
     history: { state: {}, replaceState() {}, pushState: (...args) => historyCalls.push(args) }, scrollX: 0, scrollY: 0,
     window: { addEventListener: (name, fn) => { windows[name] = fn; }, scrollTo() {} },
     DOMParser: class { parseFromString(text) { return { getElementById: () => ({ dataset: { pageTitle: text }, focus() {} }), querySelector: () => nav }; } },
@@ -24,8 +25,29 @@ function setup() {
   vm.runInNewContext(script, context);
   const click = path => events.click({ button: 0, target: { closest: () => ({ href: `https://app.test${path}`, closest: () => true, hasAttribute: () => false }) }, preventDefault() {} });
   const complete = (index, title) => requests[index].resolve({ ok: true, text: async () => title });
-  return { click, complete, requests, historyCalls, replacements, assigned, windows, location };
+  const submit = (fields, submitter) => events.submit({
+    target: { method: 'get', action: 'https://app.test/events/1/schedule', closest: () => true, fields },
+    submitter, preventDefault() {}
+  });
+  return { click, submit, complete, requests, historyCalls, replacements, assigned, windows, location };
 }
+
+test('day buttons preserve the selected date and other filters in GET navigation', () => {
+  const ui = setup();
+  ui.submit({ departmentId: '7', view: 'needs' }, { name: 'date', value: '2030-06-02' });
+  assert.equal(ui.requests[0].url.searchParams.get('date'), '2030-06-02');
+  assert.equal(ui.requests[0].url.searchParams.get('departmentId'), '7');
+  assert.equal(ui.requests[0].url.searchParams.get('view'), 'needs');
+  ui.submit({ departmentId: '7', view: 'needs' }, { name: 'date', value: '' });
+  assert.equal(ui.requests[1].url.searchParams.get('date'), '');
+});
+
+test('automatic form submission keeps hidden filters without a submit button', () => {
+  const ui = setup();
+  ui.submit({ departmentId: '7', date: '2030-06-02', view: 'mine' });
+  assert.equal(ui.requests[0].url.searchParams.get('date'), '2030-06-02');
+  assert.equal(ui.requests[0].url.searchParams.get('view'), 'mine');
+});
 test('duplicate pending clicks issue one request; completed page can intentionally reload', async () => {
   const ui = setup();
   ui.click('/logs'); ui.click('/logs');
