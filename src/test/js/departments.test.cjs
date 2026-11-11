@@ -15,7 +15,14 @@ function setup(auto = false) {
   const card = el({dataset: {departmentCard: 'dialog'}, querySelector: () => cardTitle});
   const selection = {value: ''};
   const document = el({getElementById: () => dialog, querySelectorAll: s => s === '.department-menu' ? menus : s === '[data-department-card]' ? [card] : [dialog], querySelector: () => menus[0].toggle});
-  vm.runInNewContext(readFileSync('src/main/resources/static/js/departments.js','utf8'), { SchedulerDialogs, document, window: {getSelection: () => selection.value}});
+  for (const menu of menus) {
+    for (const node of [menu, menu.toggle]) {
+      node.closest = selector => selector === '.department-menu' ? menu : selector === '.department-menu-toggle' && node === menu.toggle ? node : null;
+      const fire = node.fire.bind(node);
+      node.fire = (type, event = {}) => { fire(type, event); document.fire(type, { target: node, ...event }); };
+    }
+  }
+  vm.runInNewContext((readFileSync('src/main/resources/static/js/shared.js','utf8') + '\n' + readFileSync('src/main/resources/static/js/departments.js','utf8')), { SchedulerDialogs, document, window: {getSelection: () => selection.value}});
   return {document, menus, dialog, title, content, card, cardTitle, selection};
 }
 test('menus open exclusively, dismiss outside and restore focus with Escape', () => {

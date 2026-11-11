@@ -23,10 +23,10 @@
     main.setAttribute('aria-busy', 'true');
     status.textContent = 'Loading page…';
     try {
-      const response = await fetch(url, {
-        credentials: 'same-origin', cache: 'no-store',
+      const response = await Scheduler.request(url, {
+        check: false,
         headers: { 'X-Scheduler-Section': 'main' },
-        signal: AbortSignal.any([pending.signal, AbortSignal.timeout(20000)]),
+        signal: pending.signal,
       });
       if (current !== sequence) return;
       if (!response.ok || response.redirected) {
@@ -38,6 +38,8 @@
       const nextMain = documentFragment.getElementById('main');
       const nextNav = documentFragment.querySelector('.bottom-nav');
       if (!nextMain || !nextNav || !nextMain.dataset.pageTitle) throw new Error('Incomplete page');
+      await Scheduler.loadStyles(nextMain);
+      if (current !== sequence) return;
       // A detail view may have opened while the page request was in flight.
       if (typeof SchedulerDialogs !== 'undefined' && !await SchedulerDialogs.dismissAll()) return;
       if (current !== sequence) return;

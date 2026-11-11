@@ -13,4 +13,8 @@ public interface Assignments extends JpaRepository<Assignment, Long> {
     List<Assignment> findForVolunteerShifts(@org.springframework.data.repository.query.Param("ids") java.util.Collection<Long> ids);
     List<Assignment> findByShiftDepartmentEventIdOrderByIdAsc(Long eventId);
     boolean existsByShiftIdAndVolunteerId(Long shiftId, Long volunteerId);
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"shift.department.event", "volunteer.event", "volunteer.departmentRoles"})
+    List<Assignment> findByShiftIdInOrderByIdAsc(java.util.Collection<Long> ids);
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"shift.department.event", "volunteer.event"})
+    List<Assignment> findByVolunteerIdOrderByIdAsc(Long id);
 }

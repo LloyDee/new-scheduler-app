@@ -55,14 +55,7 @@
               </div>
             </div>
           </article>
-          <dialog class="app-dialog department-dialog" th:each="d : ${dialogDepartments}" th:id="${'department-dialog-' + d.id}" th:attr="aria-labelledby=${'department-title-' + d.id},data-department-auto-open=${selectedDepartment != null and selectedDepartment.id == d.id}">
-            <div class="app-dialog-content">
-              <h2 tabindex="-1" th:id="${'department-title-' + d.id}" th:text="${d.name}"></h2>
-              <p th:if="${departmentSchedules[d.id].isEmpty()}">No shifts in this department.</p>
-              <th:block th:if="${!departmentSchedules[d.id].isEmpty()}"><div th:replace="~{shared/fragments :: shifts(${departmentSchedules[d.id]}, false)}"></div></th:block>
-            </div>
-            <form method="dialog" class="app-dialog-footer"><button>Close</button></form>
-          </dialog>
+          <dialog class="app-dialog department-dialog" th:each="d : ${dialogDepartments}" th:id="${'department-dialog-' + d.id}" th:attr="aria-label='Details',data-department-auto-open=${selectedDepartment != null and selectedDepartment.id == d.id},data-detail-url=${base + '/departments/' + d.id + '/detail'}"><div class="app-dialog-content" data-detail-body><h2 tabindex="-1">Details</h2><p role="status">Loading details...</p></div><form method="dialog" class="app-dialog-footer"><button>Close</button></form></dialog>
           <nav th:replace="~{shared/fragments :: pagination(${listPage}, @{${base + '/departments'}(page=${listPage.number - 1})}, @{${base + '/departments'}(page=${listPage.number + 1})})}"></nav>
         </div>
 

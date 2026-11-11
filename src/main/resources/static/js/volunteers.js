@@ -10,12 +10,11 @@ function initializeVolunteers() {
   triggers.forEach(trigger => {
     if (trigger.dataset.dialogBound) return;
     trigger.dataset.dialogBound = 'true';
-    let pending, disposed = false, status;
+    let disposed = false;
     document.addEventListener('scheduler:before-page', () => {
       disposed = true;
-      pending?.abort();
     }, { once: true });
-    trigger.addEventListener('click', async event => {
+    trigger.addEventListener('click', event => {
       if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return;
       if (trigger.dataset.volunteerScroll) {
         const name = document.getElementById(trigger.dataset.volunteerScroll);
@@ -35,35 +34,15 @@ function initializeVolunteers() {
       if (!trigger.hasAttribute('data-own-volunteer-link') || typeof HTMLDialogElement === 'undefined'
           || typeof HTMLDialogElement.prototype.showModal !== 'function') return;
       event.preventDefault();
-      if (pending || disposed) return;
-      pending = new AbortController();
-      trigger.setAttribute('aria-busy', 'true');
-      if (!status) {
-        status = document.createElement('span');
-        status.setAttribute('role', 'status');
-        trigger.after(status);
-      }
-      status.textContent = 'Loading details…';
-      try {
-        const response = await fetch(trigger.href, { credentials: 'same-origin', cache: 'no-store',
-          headers: { 'X-Scheduler-Section': 'main' },
-          signal: AbortSignal.any([pending.signal, AbortSignal.timeout(20000)]) });
-        if (disposed) return;
-        if (!response.ok || response.redirected) throw new Error('Details unavailable');
-        const page = new DOMParser().parseFromString(await response.text(), 'text/html');
-        if (disposed) return;
-        const loaded = page.getElementById(trigger.dataset.volunteerDialog);
-        if (!loaded?.matches('dialog.volunteer-dialog')) throw new Error('Details unavailable');
-        loaded.removeAttribute('data-open-on-load');
-        document.getElementById('main').append(loaded);
-        if (!openDialog(loaded, trigger)) throw new Error('Details unavailable');
-        status.textContent = '';
-      } catch (error) {
-        if (!disposed) status.textContent = 'Could not load details. Select your name to retry.';
-      } finally {
-        pending = null;
-        trigger.removeAttribute('aria-busy');
-      }
+      if (disposed) return;
+      const shell = document.createElement('dialog');
+      shell.id = trigger.dataset.volunteerDialog;
+      shell.className = 'app-dialog volunteer-dialog';
+      shell.setAttribute('aria-label', 'Volunteer details');
+      const url = new URL(trigger.href, location.href);
+      shell.dataset.detailUrl = url.pathname + '/' + url.searchParams.get('view') + '/detail';
+      document.getElementById('main').append(shell);
+      openDialog(shell, trigger);
     });
   });
   const selected = document.querySelector('.volunteer-dialog[data-open-on-load="true"]');
@@ -93,9 +72,9 @@ function initializeSearch() {
     results.setAttribute('aria-busy', 'true');
     status.textContent = 'Searching…';
     try {
-      const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store',
+      const response = await Scheduler.request(url, { check: false,
         headers: { 'X-Scheduler-Section': 'main' },
-        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(20000)]) });
+        signal: controller.signal });
       if (disposed || current !== sequence) return;
       if (response.redirected) { location.assign(response.url); return; }
       if (!response.ok) throw new Error('Search failed');
@@ -165,7 +144,7 @@ function initializeTransferSearch() {
     form.querySelector('[data-transfer-results]').setAttribute('aria-busy', 'true');
     document.querySelector('[data-transfer-review]')?.remove();
     try {
-      const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', signal: controller.signal });
+      const response = await Scheduler.request(url, { check: false, signal: controller.signal });
       if (disposed || current !== sequence) return;
       if (response.redirected) { location.assign(response.url); return; }
       if (!response.ok) throw new Error('Search failed');
@@ -213,38 +192,9 @@ function initializeTransferSearch() {
   });
   document.addEventListener('scheduler:before-page', () => { disposed = true; invalidate(); }, { once: true });
 }
-document.addEventListener('scheduler:page', initializeTransferSearch);
-initializeTransferSearch();
-document.addEventListener('scheduler:page', initializeSearch);
-document.addEventListener('scheduler:page', initializeVolunteers);
-initializeVolunteers();
-initializeSearch();
+Scheduler.page(initializeTransferSearch);
+Scheduler.page(initializeVolunteers);
+Scheduler.page(initializeSearch);
 
-function closeMenus(except) {
-  document.querySelectorAll('.volunteer-menu-toggle[aria-expanded="true"]').forEach(toggle => {
-    if (toggle === except) return;
-    toggle.setAttribute('aria-expanded', 'false');
-    document.getElementById(toggle.getAttribute('aria-controls')).hidden = true;
-  });
-}
-document.addEventListener('click', event => {
-  const toggle = event.target.closest('.volunteer-menu-toggle');
-  if (toggle) {
-    const opening = toggle.getAttribute('aria-expanded') !== 'true';
-    closeMenus();
-    toggle.setAttribute('aria-expanded', String(opening));
-    document.getElementById(toggle.getAttribute('aria-controls')).hidden = !opening;
-  } else if (!event.target.closest('.volunteer-menu') || event.target.closest('.volunteer-menu-items a, .volunteer-menu-items button')) {
-    closeMenus();
-  }
-});
-document.addEventListener('keydown', event => {
-  if (event.key !== 'Escape') return;
-  const toggle = document.querySelector('.volunteer-menu-toggle[aria-expanded="true"]');
-  if (toggle) {
-    closeMenus();
-    toggle.focus();
-    event.preventDefault();
-  }
-});
+Scheduler.menus('volunteer-menu');
 })();

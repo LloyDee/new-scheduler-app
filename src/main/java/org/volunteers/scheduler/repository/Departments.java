@@ -6,4 +6,6 @@ import org.volunteers.scheduler.model.Department;
 
 public interface Departments extends JpaRepository<Department, Long> {
     List<Department> findByEventIdOrderByNameAscIdAsc(Long eventId);
+    org.springframework.data.domain.Page<Department> findByEventIdOrderByNameAscIdAsc(Long eventId, org.springframework.data.domain.Pageable pageable);
+    long countByEventId(long eventId);
 }

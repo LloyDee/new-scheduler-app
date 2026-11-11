@@ -3,7 +3,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const vm = require('node:vm');
-const script = readFileSync('src/main/resources/static/js/volunteers.js', 'utf8');
+const script = (readFileSync('src/main/resources/static/js/shared.js', 'utf8') + '\n' + readFileSync('src/main/resources/static/js/volunteers.js', 'utf8'));
 
 function setup(autoOpen = false, scrollGreeting = false, visible = true, reducedMotion = false) {
   const listeners = {};
@@ -90,7 +90,7 @@ function setupTransferSearch() {
   vm.runInNewContext(script, { SchedulerDialogs,
     document: { addEventListener(name, fn) { pageEvents[name] = fn; }, querySelectorAll: () => [],
       querySelector: selector => selector === '[data-transfer-search]' ? form : null },
-    URL, URLSearchParams, AbortController,
+    URL, URLSearchParams, AbortController, AbortSignal,
     location: { href: 'https://scheduler.test/events/1/volunteers/transfer' },
     FormData: class {
       *[Symbol.iterator]() {
@@ -251,68 +251,28 @@ test('Enter retries a failed search and navigation cancels pending work', async 
   assert.equal(state.replaced, 0);
 });
 
-function setupRemoteDialog() {
-  const events = {}, requests = [], attributes = new Map();
-  const status = { textContent: '', setAttribute() {} };
-  const dialog = { open: false, matches: () => true, removeAttribute() {},
-    addEventListener(name, fn) { this[name] = fn; },
-    querySelector: () => ({ scrollTop: 50 }), showModal() { this.open = true; } };
-  let inserted, click;
+test('greeting creates and reuses a detail shell owned by the dialog controller', () => {
+  let inserted, click, opens = [];
   const trigger = { dataset: { volunteerDialog: 'volunteer-dialog-1' },
     href: 'https://scheduler.test/events/1/volunteers?view=1',
-    hasAttribute: name => name === 'data-own-volunteer-link',
-    setAttribute: (name, value) => attributes.set(name, value),
-    removeAttribute: name => attributes.delete(name), after() {}, focus() { this.focused = true; },
-    addEventListener: (_, fn) => { click = fn; } };
-  vm.runInNewContext(script, { SchedulerDialogs, document: {
-    addEventListener(name, fn) { events[name] = fn; },
-    querySelectorAll: () => [trigger], querySelector: () => null,
-    createElement: () => status,
-    getElementById: id => id === 'main' ? { append(node) { inserted = node; } } : inserted
-  }, AbortController, AbortSignal,
+    hasAttribute: () => true, addEventListener: (_, fn) => { click = fn; } };
+  const shell = { dataset: {}, setAttribute() {}, showModal() {} };
+  vm.runInNewContext(script, { URL, location: { href: trigger.href },
     HTMLDialogElement: class { showModal() {} },
-    fetch: (url, options) => new Promise(resolve => requests.push({ url, options, resolve })),
-    DOMParser: class { parseFromString() { return { getElementById: () => dialog }; } }
+    SchedulerDialogs: { open(dialog, opener) { opens.push({ dialog, opener }); dialog.open = true; } },
+    document: { addEventListener() {}, querySelectorAll: () => [trigger], querySelector: () => null,
+      createElement: () => shell,
+      getElementById: id => id === 'main' ? { append(node) { inserted = node; } } : inserted }
   });
-  return { events, requests, attributes, status, dialog, trigger,
-    click: () => click({ button: 0, preventDefault() {} }),
-    respond: (ok = true) => requests.at(-1).resolve({ ok, text: async () => '' }) };
-}
-
-test('greeting fetches once, opens in place, reuses dialog and restores focus', async () => {
-  const state = setupRemoteDialog();
-  const pending = state.click();
-  await state.click();
-  assert.equal(state.requests.length, 1);
-  assert.equal(state.attributes.get('aria-busy'), 'true');
-  assert.equal(state.requests[0].options.headers['X-Scheduler-Section'], 'main');
-  state.respond(); await pending;
-  assert.equal(state.dialog.open, true);
-  assert.equal(state.status.textContent, '');
-  assert.equal(state.attributes.has('aria-busy'), false);
-  state.dialog.open = false; state.dialog.close();
-  assert.equal(state.trigger.focused, true);
-  await state.click();
-  assert.equal(state.dialog.open, true);
-  assert.equal(state.requests.length, 1);
-});
-
-test('failed greeting load offers retry', async () => {
-  const state = setupRemoteDialog();
-  let pending = state.click(); state.respond(false); await pending;
-  assert.match(state.status.textContent, /retry/);
-  pending = state.click(); state.respond(); await pending;
-  assert.equal(state.requests.length, 2);
-  assert.equal(state.dialog.open, true);
-});
-
-test('navigation cancels greeting load and ignores late response', async () => {
-  const state = setupRemoteDialog();
-  const pending = state.click();
-  state.events['scheduler:before-page']();
-  assert.equal(state.requests[0].options.signal.aborted, true);
-  state.respond(); await pending;
-  assert.equal(state.dialog.open, false);
+  click({ button: 0, preventDefault() {} });
+  assert.equal(inserted, shell);
+  assert.equal(shell.dataset.detailUrl, '/events/1/volunteers/1/detail');
+  assert.equal(opens[0].opener, trigger);
+  click({ button: 0, preventDefault() {} });
+  assert.equal(opens.length, 1);
+  shell.open = false;
+  click({ button: 0, preventDefault() {} });
+  assert.equal(opens.length, 2);
 });
 
 test('profile menus toggle exclusively, dismiss outside and restore focus with Escape', () => {
@@ -328,17 +288,23 @@ test('profile menus toggle exclusively, dismiss outside and restore focus with E
   });
   vm.runInNewContext(script, { SchedulerDialogs, document: {
     addEventListener(name, fn) { events[name] = fn; },
-    querySelectorAll(selector) { return selector.includes('aria-expanded') ? toggles.filter(t => t.expanded === 'true') : []; },
+    querySelectorAll(selector) { return selector === '.volunteer-menu' ? roots : selector.includes('aria-expanded') ? toggles.filter(t => t.expanded === 'true') : []; },
     querySelector(selector) { return selector.includes('aria-expanded') ? toggles.find(t => t.expanded === 'true') : null; },
     getElementById: id => menus.get(id)
   } });
-  const click = toggle => events.click({ target: { closest: selector => selector === '.volunteer-menu-toggle' ? toggle : null } });
+  const roots = toggles.map((toggle, index) => ({
+    querySelector: selector => selector === '.volunteer-menu-toggle' ? toggle : menus.get(index ? 'two' : 'one'),
+    contains: target => target === toggle
+  }));
+  // The shared utility queries menu containers to close all open menus.
+  // Install those containers before dispatching delegated events.
+  const click = toggle => events.click({ target: { closest: selector => selector === '.volunteer-menu-toggle' ? toggle : selector === '.volunteer-menu' ? roots[toggles.indexOf(toggle)] : null } });
   click(toggles[0]);
   assert.equal(menus.get('one').hidden, false);
   click(toggles[1]);
   assert.equal(menus.get('one').hidden, true);
   assert.equal(menus.get('two').hidden, false);
-  events.keydown({ key: 'Escape', preventDefault() {} });
+  events.keydown({ key: 'Escape', target: { closest: () => roots[1] }, stopPropagation() {} });
   assert.equal(menus.get('two').hidden, true);
   assert.equal(toggles[1].focused, true);
   click(toggles[0]); click(null);

@@ -18,6 +18,11 @@ public class AccessAdvice {
         if (handler instanceof org.springframework.web.method.HandlerMethod method
                 && (method.hasMethodAnnotation(ResponseBody.class)
                     || method.getBeanType().isAnnotationPresent(RestController.class))) return;
+        if (handler instanceof org.springframework.web.method.HandlerMethod method
+                && method.getBeanType() == DialogController.class) {
+            model.addAttribute("ownVolunteerIds", access.ids(session));
+            return;
+        }
         Long eventId = (Long) session.getAttribute("activeEvent");
         var matcher = java.util.regex.Pattern.compile("^/events/(\\d+)(?:/.*)?$")
                 .matcher(org.springframework.web.util.UrlPathHelper.defaultInstance.getPathWithinApplication(request));

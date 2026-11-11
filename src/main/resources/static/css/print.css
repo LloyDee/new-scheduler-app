@@ -1,0 +1,84 @@
+/* Print styles. */
+@media print {
+.app-header, .bottom-nav, .no-print, .alert, .skip-link {
+    display: none !important;
+}
+
+.container {
+    max-width: none;
+    padding: 0;
+}
+
+.page-heading {
+    margin: 0 0 20px;
+}
+
+body {
+    background: white;
+    color: black;
+    font-size: 10pt;
+}
+
+h1 {
+    font-size: 24pt;
+}
+
+.card {
+    border: 1px solid #bbb;
+    border-radius: 0;
+    box-shadow: none;
+    break-inside: avoid;
+    padding: 14px;
+}
+
+.badge {
+    color: black;
+    background: white;
+    border: 1px solid #bbb;
+}
+
+.table-wrap {
+    overflow: visible;
+}
+
+.table-wrap table {
+    min-width: 0;
+}
+
+th {
+    background: white;
+}
+
+a {
+    color: black;
+}
+
+.table-wrap {
+    break-inside: auto;
+}
+
+tr {
+    break-inside: avoid;
+}
+
+.shift-list, .stack {
+    gap: 12px;
+}
+
+.report-assignment {
+    grid-template-columns:1fr 1fr 1fr;
+}
+
+.person-chip {
+    background: white;
+    border: 1px solid #bbb;
+}
+
+.report-context {
+    margin: 12px 0;
+}
+
+.weather-scene {
+    display: none;
+}
+}

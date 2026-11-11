@@ -15,6 +15,7 @@ const SchedulerDialogs = (() => {
       field.checked = checked;
       if (selected) [...field.options].forEach((option, index) => { option.selected = selected[index]; });
     });
+    entry.controller?.abort();
     entry.dialog.close();
     const target = entry.opener?.isConnected && entry.opener.getClientRects().length
       ? entry.opener : stack.at(-1)?.dialog || document.getElementById('main');
@@ -46,8 +47,54 @@ const SchedulerDialogs = (() => {
       if (focus.matches('h1, h2, h3') && !focus.hasAttribute('tabindex')) focus.setAttribute('tabindex', '-1');
       focus.focus({ preventScroll: true });
     }
+    if (dialog.dataset.detailUrl) loadDetails(entry);
     return true;
   }
+  async function loadDetails(entry) {
+    const { dialog } = entry;
+    if (entry.controller || !dialog.open) return;
+    const controller = entry.controller = new AbortController();
+    dialog.setAttribute('aria-busy', 'true');
+    dialog.removeAttribute('aria-labelledby');
+    dialog.innerHTML = '<div class="app-dialog-content"><h2 tabindex="-1">Details</h2><p role="status">Loading details...</p></div><form method="dialog" class="app-dialog-footer"><button>Close</button></form>';
+    entry.fields = [];
+    entry.initial = snapshot(dialog);
+    dialog.querySelector('h2').focus({ preventScroll: true });
+    try {
+      const response = await Scheduler.request(dialog.dataset.detailUrl, { check: false,
+        signal: controller.signal });
+      if (!response.ok || response.redirected || response.headers.get('X-Scheduler-Detail') !== 'true') throw new Error('Details unavailable');
+      const html = await response.text();
+      if (controller.signal.aborted || !dialog.isConnected || !dialog.open) return;
+      dialog.innerHTML = html;
+      const heading = dialog.querySelector('h2[id]');
+      if (heading) dialog.setAttribute('aria-labelledby', heading.id);
+      entry.fields = [...dialog.querySelectorAll('input[name], select[name], textarea[name]')].map(field => ({
+        field, value: field.value, checked: field.checked,
+        selected: field.tagName === 'SELECT' ? [...field.options].map(option => option.selected) : null
+      }));
+      entry.initial = snapshot(dialog);
+      document.dispatchEvent(new CustomEvent('scheduler:detail', { detail: dialog }));
+      if (stack.at(-1) === entry) {
+        const focus = dialog.querySelector('[autofocus], h2, input, button');
+        if (focus?.matches('h2')) focus.setAttribute('tabindex', '-1');
+        focus?.focus({ preventScroll: true });
+      }
+    } catch (error) {
+      if (controller.signal.aborted || !dialog.isConnected || !dialog.open) return;
+      dialog.innerHTML = '<div class="app-dialog-content"><h2 tabindex="-1">Details unavailable</h2><p role="alert">Could not load details. Please try again.</p><button type="button" data-detail-retry>Retry</button></div><form method="dialog" class="app-dialog-footer"><button>Close</button></form>';
+      dialog.querySelector('[data-detail-retry]').addEventListener('click', () => loadDetails(entry));
+      if (stack.at(-1) === entry) dialog.querySelector('[data-detail-retry]').focus();
+    } finally {
+      if (entry.controller === controller) entry.controller = null;
+      if (stack.includes(entry)) dialog.removeAttribute('aria-busy');
+    }
+  }
+  document.addEventListener('click', event => {
+    const trigger = event.target.closest('[data-app-dialog]');
+    if (trigger) open(document.getElementById(trigger.dataset.appDialog), trigger);
+  });
+  document.addEventListener('scheduler:before-page', () => stack.forEach(entry => entry.controller?.abort()));
   document.addEventListener('cancel', event => {
     if (!stack.some(entry => entry.dialog === event.target)) return;
     event.preventDefault();

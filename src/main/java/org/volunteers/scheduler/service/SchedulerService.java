@@ -1,376 +1,171 @@
 package org.volunteers.scheduler.service;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 import org.volunteers.scheduler.model.Assignment;
 import org.volunteers.scheduler.model.Department;
 import org.volunteers.scheduler.model.Event;
 import org.volunteers.scheduler.model.Shift;
 import org.volunteers.scheduler.model.Volunteer;
-import org.volunteers.scheduler.repository.Events;
-import org.volunteers.scheduler.repository.Volunteers;
-import org.volunteers.scheduler.repository.Departments;
-import org.volunteers.scheduler.repository.Shifts;
-import org.volunteers.scheduler.repository.Assignments;
-import java.time.*;
-import java.time.format.DateTimeParseException;
-import java.util.*;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 
+/** Compatibility facade for existing callers; workflows live in the feature services. */
 @Service
 @Transactional(readOnly = true)
 public class SchedulerService {
-    private final Events events;
-    private final Volunteers volunteers;
-    private final Departments departments;
-    private final Shifts shifts;
-    private final Assignments assignments;
-    private final org.volunteers.scheduler.repository.Announcements announcements;
-    private final org.volunteers.scheduler.repository.AnnouncementRecipients announcementRecipients;
+    private final EventService eventService;
+    private final VolunteerService volunteerService;
+    private final DepartmentService departmentService;
+    private final ScheduleService scheduleService;
+    private final SchedulerQueries schedulerQueries;
 
-    public SchedulerService(Events events, Volunteers volunteers, Departments departments,
-                            Shifts shifts, Assignments assignments, OwnerIdentity ownerIdentity,
-                            org.volunteers.scheduler.repository.Announcements announcements,
-                            org.volunteers.scheduler.repository.AnnouncementRecipients announcementRecipients) {
-        this.events = events; this.volunteers = volunteers; this.departments = departments;
-        this.shifts = shifts; this.assignments = assignments; this.ownerIdentity = ownerIdentity;
-        this.announcements = announcements; this.announcementRecipients = announcementRecipients;
+    public SchedulerService(EventService eventService, VolunteerService volunteerService, DepartmentService departmentService, ScheduleService scheduleService, SchedulerQueries schedulerQueries) {
+        this.eventService = eventService;
+        this.volunteerService = volunteerService;
+        this.departmentService = departmentService;
+        this.scheduleService = scheduleService;
+        this.schedulerQueries = schedulerQueries;
     }
 
-    private final OwnerIdentity ownerIdentity;
-
-    @org.springframework.beans.factory.annotation.Value("${scheduler.app-owner-phone:8135160335}")
-    private String ownerPhone;
     public static final String LAST_ADMIN = "This event must retain at least one administrator. Assign another administrator before removing this one.";
     @Transactional
     public Volunteer ensureAdministrator(Event event, String phone) {
-        if (ownerIdentity.matches(phone)) return null;
-        String key = PhoneAccess.normalize(phone);
-        require(!key.isEmpty(), "Configure a valid App Owner phone number.");
-        Volunteer member = volunteers.findByEventIdOrderByNameAscIdAsc(event.getId()).stream()
-            .filter(v -> key.equals(PhoneAccess.normalize(v.getPhone()))).findFirst().orElse(null);
-        if (member == null) {
-            var profile = volunteers.findByNormalizedPhone(key).stream().findFirst().orElse(null);
-            member = new Volunteer(); member.setEvent(event); member.setPhone(key);
-            member.setName(profile == null ? "App Owner" : profile.getName());
-            member.setEmail(profile == null ? "" : profile.getEmail());
-            member.setCongregation(profile == null ? "" : profile.getCongregation());
-            member.setNotes(""); member.setPrivilege(profile == null ? Volunteer.Privilege.PUBLISHER : profile.getPrivilege());
-        }
-        member.setEventAdministrator(true);
-        return volunteers.save(member);
+        return eventService.ensureAdministrator(event, phone);
     }
-    public List<Event> events() { return events.findAllByOrderByStartDateDescIdDesc(); }
+    public List<Event> events() {
+        return eventService.events();
+    }
     public org.springframework.data.domain.Page<Event> eventsPage(int page) {
-        return events.findAllByOrderByStartDateDescIdDesc(org.springframework.data.domain.PageRequest.of(Math.max(0, page), 25));
+        return eventService.eventsPage(page);
     }
     public record VolunteerPage(Snapshot snapshot, org.springframework.data.domain.Page<Volunteer> page) { }
 
     public VolunteerPage volunteerPage(long eventId, Long departmentId, String search, int page, List<Long> details) {
-        Event event = event(eventId);
-        var eventDepartments = departments.findByEventIdOrderByNameAscIdAsc(eventId);
-        var pageable = org.springframework.data.domain.PageRequest.of(Math.max(0, page), 25);
-        var ids = volunteers.findPageIds(eventId, departmentId, search.strip().toLowerCase(Locale.ROOT), pageable);
-        Set<Long> needed = new LinkedHashSet<>(ids.getContent());
-        needed.addAll(details);
-        var records = needed.isEmpty() ? List.<Volunteer>of() : volunteers.findByIdInOrderByNameAscIdAsc(needed);
-        for (Long id : details) {
-            if (records.stream().noneMatch(v -> v.getId().equals(id) && v.getEvent().getId().equals(eventId))) throw notFound();
-        }
-        var eventAssignments = needed.isEmpty() ? List.<Assignment>of() : assignments.findForVolunteerShifts(needed);
-        var eventShifts = eventAssignments.stream().map(Assignment::getShift).distinct()
-            .sorted(Comparator.comparing(Shift::getDate).thenComparing(Shift::getStartTime).thenComparing(Shift::getId)).toList();
-        var visible = records.stream().filter(v -> ids.getContent().contains(v.getId())).toList();
-        return new VolunteerPage(new Snapshot(event, records, eventDepartments, eventShifts, eventAssignments),
-            new org.springframework.data.domain.PageImpl<>(visible, pageable, ids.getTotalElements()));
+        return volunteerService.volunteerPage(eventId, departmentId, search, page, details);
     }
-    public Event event(long id) { return events.findById(id).orElseThrow(SchedulerService::notFound); }
+    public VolunteerPage volunteerList(long eventId, Long departmentId, String search, int page, List<Long> details, boolean histories) {
+        return volunteerService.volunteerPage(eventId, departmentId, search, page, details, histories);
+    }
+    public Event event(long id) {
+        return schedulerQueries.event(id);
+    }
     public Volunteer volunteer(long eventId, long id) {
-        Volunteer v = volunteers.findById(id).orElseThrow(SchedulerService::notFound);
-        sameEvent(eventId, v.getEvent().getId());
-        require(!v.isParticipationEnded(), "This volunteer's participation has ended."); return v;
+        return schedulerQueries.volunteer(eventId, id);
     }
     public Department department(long eventId, long id) {
-        Department d = departments.findById(id).orElseThrow(SchedulerService::notFound);
-        sameEvent(eventId, d.getEvent().getId()); return d;
+        return schedulerQueries.department(eventId, id);
     }
     public Shift shift(long eventId, long id) {
-        Shift s = shifts.findById(id).orElseThrow(SchedulerService::notFound);
-        sameEvent(eventId, s.getDepartment().getEvent().getId()); return s;
+        return schedulerQueries.shift(eventId, id);
+    }
+    public SchedulerQueries.SchedulePage schedulePage(long eventId, Long departmentId, LocalDate date, String view, Set<Long> ownIds, int page, Long edit) {
+        return schedulerQueries.schedulePage(eventId, departmentId, date, view, ownIds, page, edit);
+    }
+    public SchedulerQueries.DepartmentPage departmentPage(long eventId, int page, List<Long> details) {
+        return schedulerQueries.departmentPage(eventId, page, details);
+    }
+    public SchedulerQueries.Home home(long eventId, Set<Long> ownIds, java.time.LocalDateTime now) {
+        return schedulerQueries.home(eventId, ownIds, now);
+    }    public org.volunteers.scheduler.service.SchedulerQueries.SchedulePage scheduleList(long eventId, Long departmentId, LocalDate date, String view, Set<Long> ownIds, int page, Long edit) {
+        return schedulerQueries.schedulePage(eventId, departmentId, date, view, ownIds, page, edit, false);
+    }
+    public org.volunteers.scheduler.service.SchedulerQueries.DepartmentPage departmentList(long eventId, int page, List<Long> details) {
+        return schedulerQueries.departmentPage(eventId, page, details, false);
     }
     public Snapshot snapshot(long id) {
-        Event event = event(id);
-        // Resolve map keys before fetching volunteer roles to avoid individual department loads.
-        var eventDepartments = departments.findByEventIdOrderByNameAscIdAsc(id);
-        return new Snapshot(event, volunteers.findByEventIdOrderByNameAscIdAsc(id).stream().filter(v -> !v.isParticipationEnded()).toList(), eventDepartments,
-                shifts.findByDepartmentEventIdOrderByDateAscStartTimeAscIdAsc(id),
-                assignments.findByShiftDepartmentEventIdOrderByIdAsc(id));
+        return schedulerQueries.snapshot(id);
     }
 
     @Transactional
     public Event saveEvent(Long id, Map<String, String> input) {
-        return saveEvent(id, input, ownerPhone);
+        return eventService.saveEvent(id, input);
     }
 
     @Transactional
     public Event saveEvent(Long id, Map<String, String> input, String administratorPhone) {
-        Event.Type type;
-        try { type = Event.Type.valueOf(input.getOrDefault("type", "")); }
-        catch (IllegalArgumentException ex) { throw invalid("Choose an event type."); }
-        LocalDate start = date(input, "startDate");
-        LocalDate end = type == Event.Type.REGIONAL_CONVENTION ? start.plusDays(2) : start;
-        String assembly = "";
-        String name;
-        if (type == Event.Type.REGIONAL_CONVENTION) {
-            int year = start.getYear() + (start.getMonthValue() >= 9 ? 1 : 0);
-            name = year + " Regional Convention";
-        } else {
-            assembly = required(input, "assembly", 60);
-            require(Set.of("with Circuit Overseer", "with Branch Representative").contains(assembly),
-                    "Choose a Circuit Assembly representative.");
-            name = "Circuit Assembly " + assembly;
-        }
-        String venue = optional(input, "venue", 240);
-        String circuit = type == Event.Type.CIRCUIT_ASSEMBLY ? optional(input, "circuit", 60) : "";
-        Event e = id == null ? new Event() : event(id);
-        if (id != null) {
-            require(shifts.findByDepartmentEventIdOrderByDateAscStartTimeAscIdAsc(id).stream()
-                    .noneMatch(s -> s.getDate().isBefore(start) || s.getDate().isAfter(end)),
-                    "These dates exclude existing shifts. Move or delete those shifts first.");
-        }
-        e.setName(name); e.setType(type); e.setStartDate(start); e.setEndDate(end); e.setVenue(venue);
-        e.setAssembly(assembly);
-        e.setCircuit(circuit);
-        Event saved = events.save(e);
-        if (id == null) ensureAdministrator(saved, administratorPhone);
-        return saved;
+        return eventService.saveEvent(id, input, administratorPhone);
     }
 
     @Transactional
     public Volunteer saveVolunteer(long eventId, Long id, Map<String, String> input) {
-        return saveVolunteer(eventId, id, input, true);
+        return volunteerService.saveVolunteer(eventId, id, input);
     }
 
     /** Validate changes to administrator memberships under the same lock as to write. */
     @Transactional
     public Volunteer saveVolunteer(long eventId, Long id, Map<String, String> input, boolean mayAdminister) {
-        Event e = events.lockForVolunteerUpdate(eventId).orElseThrow(SchedulerService::notFound);
-        List<Volunteer> existing = volunteers.findByEventIdOrderByNameAscIdAsc(eventId);
-        Volunteer current = id == null ? null : existing.stream().filter(v -> v.getId().equals(id))
-            .findFirst().orElseThrow(SchedulerService::notFound);
-        if (!mayAdminister && ((current != null && current.isEventAdministrator())
-                || Boolean.parseBoolean(input.get("eventAdministrator"))))
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-        String name = required(input, "name", 160), phone = required(input, "phone", 60);
-        ownerIdentity.requireVolunteerPhone(phone);
-        require(phone.matches("[0-9() .-]+"), "Enter a 10-digit phone number.");
-        String phoneDigits = phone.replaceAll("[^0-9]", "");
-        require(phoneDigits.length() == 10, "Enter a 10-digit phone number.");
-        phone = "(" + phoneDigits.substring(0, 3) + ")" + phoneDigits.substring(3, 6) + "-" + phoneDigits.substring(6);
-        String email = optional(input, "email", 254);
-        require(email.isEmpty() || email.matches("[^\\s@]+@[^\\s@]+\\.[^\\s@]+"), "Enter a valid email address.");
-        String congregation = required(input, "congregation", 160), notes = optional(input, "notes", 2000);
-        String privilegeValue = required(input, "privilege", 40);
-        Volunteer.Privilege privilege = null;
-        if (!privilegeValue.isEmpty()) {
-            try { privilege = Volunteer.Privilege.valueOf(privilegeValue); }
-            catch (IllegalArgumentException ex) { throw invalid("Choose a valid privilege."); }
-        }
-        Map<Department, Volunteer.Role> departmentRoles = new LinkedHashMap<>();
-        for (var entry : input.entrySet()) {
-            if (!entry.getKey().startsWith("departmentRole_")) continue;
-            if (entry.getValue().isBlank()) continue;
-            long departmentId = number(Map.of("departmentId", entry.getKey().substring("departmentRole_".length())), "departmentId");
-            Department selected = department(eventId, departmentId);
-            Volunteer.Role role;
-            try { role = Volunteer.Role.valueOf(entry.getValue()); }
-            catch (IllegalArgumentException ex) { throw invalid("Choose a valid role for " + selected.getName() + "."); }
-            departmentRoles.put(selected, role);
-        }
-        require(departmentRoles.values().stream().noneMatch(role -> role == Volunteer.Role.ADMIN), "Use the event administrator setting instead of department Admin.");
-        boolean administrator = Boolean.parseBoolean(input.getOrDefault("eventAdministrator", "false"));
-        if (current != null && current.isEventAdministrator() && !administrator)
-            require(existing.stream().anyMatch(other -> !Objects.equals(other.getId(), id) && other.isEventAdministrator()), LAST_ADMIN);
-        boolean noDepartment = "none".equals(input.get("departmentChoice"));
-        require(administrator || id == null || !noDepartment, "Choose a department and its role.");
-        require(administrator || !departmentRoles.isEmpty() || noDepartment,
-                id == null ? "Choose a department and its role, or No Department Yet." : "Choose a department and its role.");
-        require(!noDepartment || departmentRoles.isEmpty(), "No Department Yet cannot be combined with department roles.");
-        for (var membership : departmentRoles.entrySet()) {
-            Volunteer.Role role = membership.getValue();
-            int limit = role == Volunteer.Role.OVERSEER ? 1 : role == Volunteer.Role.ASSISTANT_OVERSEER ? 2 : Integer.MAX_VALUE;
-            long count = existing.stream().filter(other -> !Objects.equals(other.getId(), id))
-                    .filter(other -> other.getDepartmentRoles().entrySet().stream().anyMatch(entry ->
-                            entry.getKey().getId().equals(membership.getKey().getId()) && entry.getValue() == role)).count();
-            require(count < limit, membership.getKey().getName() + " allows at most " + limit + " "
-                    + role.getLabel() + (limit == 1 ? "." : "s."));
-        }
-        Volunteer v = current == null ? new Volunteer() : current;
-        v.setEvent(e); v.setName(name); v.setPhone(phone); v.setEmail(email); v.setCongregation(congregation); v.setNotes(notes);
-        v.setEventAdministrator(administrator);
-        v.setPrivilege(privilege);
-        v.getDepartmentRoles().clear();
-        v.getDepartmentRoles().putAll(departmentRoles);
-        return volunteers.save(v);
+        return volunteerService.saveVolunteer(eventId, id, input, mayAdminister);
     }
 
     @Transactional
     public Department saveDepartment(long eventId, Long id, Map<String, String> input) {
-        Event e = event(eventId);
-        String name = required(input, "name", 160), description = optional(input, "description", 2000);
-        Department d = id == null ? new Department() : department(eventId, id);
-        d.setEvent(e); d.setName(name); d.setDescription(description);
-        return departments.save(d);
+        return departmentService.saveDepartment(eventId, id, input);
     }
 
     @Transactional
     public Shift saveShift(long eventId, Long id, Map<String, String> input) {
-        Event e = event(eventId);
-        Department d = department(eventId, number(input, "departmentId"));
-        LocalDate date = e.getType() == Event.Type.CIRCUIT_ASSEMBLY ? e.getStartDate() : date(input, "date");
-        LocalTime start = time(input, "startTime"), end = time(input, "endTime");
-        if (e.getType() == Event.Type.CIRCUIT_ASSEMBLY) {
-            for (LocalTime value : List.of(start, end)) {
-                require(!value.isBefore(LocalTime.of(6, 0)) && !value.isAfter(LocalTime.of(17, 30)),
-                        "Shift times must be between 06:00 AM and 05:30 PM.");
-                require(value.getMinute() % 15 == 0 && value.getSecond() == 0 && value.getNano() == 0,
-                        "Shift times must use 15-minute increments.");
-            }
-        }
-        require(!date.isBefore(e.getStartDate()) && !date.isAfter(e.getEndDate()), "Shift date must be within the event dates.");
-        require(end.isAfter(start), "End time must be after start time. Overnight shifts are not supported.");
-        long required = number(input, "requiredCount");
-        require(required >= 1 && required <= 10000, "Required volunteers must be between 1 and 10,000.");
-        String notes = optional(input, "notes", 2000);
-        String name = required(input, "name", 160);
-        Shift s = id == null ? new Shift() : shift(eventId, id);
-        if (id != null && !(date.equals(s.getDate()) && start.equals(s.getStartTime()) && end.equals(s.getEndTime()))) {
-            List<Assignment> all = assignments.findByShiftDepartmentEventIdOrderByIdAsc(eventId);
-            Set<Long> assigned = new HashSet<>();
-            all.stream().filter(a -> a.getShift().getId().equals(id)).forEach(a -> assigned.add(a.getVolunteer().getId()));
-            List<String> conflicts = all.stream().filter(a -> assigned.contains(a.getVolunteer().getId()) && !a.getShift().getId().equals(id)
-                    && overlaps(a.getShift(), date, start, end)).map(SchedulerService::conflictDescription).toList();
-            if (!conflicts.isEmpty() && !confirmed(input)) throw new OverlapException(String.join("; ", conflicts));
-        }
-        s.setName(name); s.setDepartment(d); s.setDate(date); s.setStartTime(start); s.setEndTime(end);
-        s.setRequiredCount((int) required); s.setNotes(notes);
-        return shifts.save(s);
+        return scheduleService.saveShift(eventId, id, input);
     }
 
     @Transactional
     public void assign(long eventId, long shiftId, long volunteerId, boolean confirmed) {
-        events.lockForVolunteerUpdate(eventId).orElseThrow(SchedulerService::notFound);
-        Shift s = shift(eventId, shiftId);
-        Volunteer v = volunteer(eventId, volunteerId);
-        require(!assignments.existsByShiftIdAndVolunteerId(shiftId, volunteerId), "This volunteer is already assigned to this shift.");
-        List<String> conflicts = assignments.findByShiftDepartmentEventIdOrderByIdAsc(eventId).stream()
-                .filter(a -> a.getVolunteer().getId().equals(volunteerId) && overlaps(a.getShift(), s.getDate(), s.getStartTime(), s.getEndTime()))
-                .map(SchedulerService::conflictDescription).toList();
-        if (!conflicts.isEmpty() && !confirmed) throw new OverlapException(String.join("; ", conflicts));
-        if (v.getDepartmentRoles().isEmpty()) v.getDepartmentRoles().put(s.getDepartment(), Volunteer.Role.VOLUNTEER);
-        Assignment a = new Assignment(); a.setShift(s); a.setVolunteer(v); assignments.saveAndFlush(a);
+        scheduleService.assign(eventId, shiftId, volunteerId, confirmed);
     }
 
     @Transactional
     public void assignBatch(long eventId, long shiftId, List<Long> volunteerIds) {
-        events.lockForVolunteerUpdate(eventId).orElseThrow(SchedulerService::notFound);
-        Shift target = shift(eventId, shiftId);
-        require(volunteerIds != null && !volunteerIds.isEmpty(), "Choose at least one volunteer.");
-        require(new HashSet<>(volunteerIds).size() == volunteerIds.size(), "Choose each volunteer only once.");
-        Set<Long> eligible = new HashSet<>();
-        snapshot(eventId).availableVolunteers(target).stream()
-                .forEach(v -> eligible.add(v.getId()));
-        require(eligible.containsAll(volunteerIds),
-                "One or more selected volunteers are no longer available in this department. Please choose again.");
-        for (Long volunteerId : volunteerIds) assign(eventId, shiftId, volunteerId, false);
+        scheduleService.assignBatch(eventId, shiftId, volunteerIds);
     }
 
     @Transactional
     public void updateAssignments(long eventId, long shiftId, List<Long> volunteerIds) {
-        events.lockForVolunteerUpdate(eventId).orElseThrow(SchedulerService::notFound);
-        Shift target = shift(eventId, shiftId);
-        require(volunteerIds != null, "Choose volunteers to save.");
-        Set<Long> selected = new HashSet<>(volunteerIds);
-        require(selected.size() == volunteerIds.size(), "Choose each volunteer only once.");
-        var data = snapshot(eventId);
-        var current = data.assignments().stream()
-                .filter(a -> a.getShift().getId().equals(shiftId)).toList();
-        Set<Long> currentIds = new HashSet<>();
-        current.forEach(a -> currentIds.add(a.getVolunteer().getId()));
-        Set<Long> eligible = new HashSet<>(currentIds);
-        data.availableVolunteers(target).stream()
-                .forEach(v -> eligible.add(v.getId()));
-        require(eligible.containsAll(selected),
-                "One or more selected volunteers are no longer available in this department. Please choose again.");
-        for (Long volunteerId : selected) {
-            if (!currentIds.contains(volunteerId)) assign(eventId, shiftId, volunteerId, false);
-        }
-        assignments.deleteAll(current.stream()
-                .filter(a -> !selected.contains(a.getVolunteer().getId())).toList());
+        scheduleService.updateAssignments(eventId, shiftId, volunteerIds);
     }
 
     @Transactional
     public void unassign(long eventId, long id) {
-        Assignment a = assignments.findById(id).orElseThrow(SchedulerService::notFound);
-        sameEvent(eventId, a.getShift().getDepartment().getEvent().getId()); assignments.delete(a);
+        scheduleService.unassign(eventId, id);
     }
 
     @Transactional
     public void deleteVolunteer(long eventId, long id) {
-        deleteVolunteer(eventId, id, true);
+        volunteerService.deleteVolunteer(eventId, id);
     }
 
     @Transactional
     public void deleteVolunteer(long eventId, long id, boolean mayAdminister) {
-        events.lockForVolunteerUpdate(eventId).orElseThrow(SchedulerService::notFound);
-        Volunteer v = volunteer(eventId, id);
-        if (v.isEventAdministrator() && !mayAdminister) throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-        require(!v.isEventAdministrator() || volunteers.findByEventIdOrderByNameAscIdAsc(eventId).stream()
-            .anyMatch(other -> !other.getId().equals(id) && other.isEventAdministrator()), LAST_ADMIN);
-        assignments.deleteAll(assignments.findByShiftDepartmentEventIdOrderByIdAsc(eventId).stream()
-                .filter(a -> a.getVolunteer().getId().equals(id)).toList());
-        assignments.flush(); volunteers.delete(v);
+        volunteerService.deleteVolunteer(eventId, id, mayAdminister);
     }
 
     @Transactional
     public void deleteShift(long eventId, long id) {
-        Shift s = shift(eventId, id);
-        assignments.deleteAll(assignments.findByShiftDepartmentEventIdOrderByIdAsc(eventId).stream()
-                .filter(a -> a.getShift().getId().equals(id)).toList());
-        assignments.flush(); shifts.delete(s); shifts.flush();
+        scheduleService.deleteShift(eventId, id);
     }
 
     @Transactional
     public void deleteDepartment(long eventId, long id) {
-        Department d = department(eventId, id);
-        volunteers.findByEventIdOrderByNameAscIdAsc(eventId).forEach(v ->
-                v.getDepartmentRoles().keySet().removeIf(selected -> selected.getId().equals(id)));
-        volunteers.flush();
-        shifts.findByDepartmentEventIdOrderByDateAscStartTimeAscIdAsc(eventId).stream()
-                .filter(s -> s.getDepartment().getId().equals(id)).toList().forEach(s -> deleteShift(eventId, s.getId()));
-        departments.delete(d); departments.flush();
+        departmentService.deleteDepartment(eventId, id);
     }
 
     @Transactional
     public void deleteEvent(long id) {
-        Event e = events.lockForVolunteerUpdate(id).orElseThrow(SchedulerService::notFound);
-        for (var announcement : announcements.findByEventIdOrderByCreatedAtDescIdDesc(id)) {
-            announcementRecipients.deleteByAnnouncementId(announcement.id);
-            announcements.delete(announcement);
-        }
-        assignments.deleteAll(assignments.findByShiftDepartmentEventIdOrderByIdAsc(id)); assignments.flush();
-        shifts.deleteAll(shifts.findByDepartmentEventIdOrderByDateAscStartTimeAscIdAsc(id)); shifts.flush();
-        volunteers.deleteAll(volunteers.findByEventIdOrderByNameAscIdAsc(id));
-        volunteers.flush();
-        departments.deleteAll(departments.findByEventIdOrderByNameAscIdAsc(id));
-        volunteers.flush(); departments.flush(); events.delete(e);
+        eventService.deleteEvent(id);
     }
 
     static boolean overlaps(Shift s, LocalDate date, LocalTime start, LocalTime end) {
         return s.getDate().equals(date) && start.isBefore(s.getEndTime()) && end.isAfter(s.getStartTime());
     }
-    private static String conflictDescription(Assignment a) {
+    static String conflictDescription(Assignment a) {
         return a.getVolunteer().getName() + " — " + a.getShift().getDepartment().getName() + ", " + a.getShift().getDate() + " "
                 + a.getShift().getStartTime() + "–" + a.getShift().getEndTime();
     }
@@ -383,20 +178,20 @@ public class SchedulerService {
         try { return LocalDate.parse(input.getOrDefault(key, "")); }
         catch (DateTimeParseException ex) { throw invalid("Enter a valid date for " + key + "."); }
     }
-    private static LocalTime time(Map<String, String> input, String key) {
+    static LocalTime time(Map<String, String> input, String key) {
         try { return LocalTime.parse(input.getOrDefault(key, "")); }
         catch (DateTimeParseException ex) { throw invalid("Enter a valid time for " + key + "."); }
     }
     static String required(Map<String, String> input, String key, int max) {
         String value = optional(input, key, max); require(!value.isBlank(), "Please enter " + key + "."); return value;
     }
-    private static String optional(Map<String, String> input, String key, int max) {
+    static String optional(Map<String, String> input, String key, int max) {
         String value = input.getOrDefault(key, "").strip();
         require(value.length() <= max, key + " must be at most " + max + " characters."); return value;
     }
-    private static void sameEvent(long expected, long actual) { if (expected != actual) throw notFound(); }
-    private static void require(boolean condition, String message) { if (!condition) throw invalid(message); }
-    private static IllegalArgumentException invalid(String message) { return new IllegalArgumentException(message); }
+    static void sameEvent(long expected, long actual) { if (expected != actual) throw notFound(); }
+    static void require(boolean condition, String message) { if (!condition) throw invalid(message); }
+    static IllegalArgumentException invalid(String message) { return new IllegalArgumentException(message); }
     static ResponseStatusException notFound() { return new ResponseStatusException(HttpStatus.NOT_FOUND, "Item not found in this event."); }
     public static class OverlapException extends IllegalArgumentException {
         public OverlapException(String conflicts) { super("Overlapping assignments: " + conflicts); }

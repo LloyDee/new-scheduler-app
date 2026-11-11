@@ -79,7 +79,7 @@ class NavigationIntegrationTest {
         String html = mvc.perform(get(base() + "/volunteers").session(session))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         assertThat(html).contains("View Profile", "Edit Profile", "volunteer-menu-toggle", ">You</span>",
-                ">North Central Park</p>", "North   Central Park Congregation, Chicago")
+                ">North Central Park</p>")
                 .doesNotContain("class=\"card-actions\"", ">Delete</button>", "Add / Move Profile");
         // An overseer can manage ordinary volunteers, including their own profile.
         mvc.perform(get(base() + "/volunteers").session(session).param("edit", owner.getId().toString()))
@@ -168,7 +168,11 @@ class NavigationIntegrationTest {
         @SuppressWarnings("unchecked") var rows = (List<SchedulerService.ShiftRow>) response.getModelAndView().getModel().get("rows");
         assertThat(rows).hasSize(25);
         @SuppressWarnings("unchecked") var options = (Map<Long, List<Volunteer>>) response.getModelAndView().getModel().get("assignmentOptions");
-        options.values().forEach(eligible -> assertThat(eligible).extracting(Volunteer::getId).doesNotContain(owner.getId()));
+        assertThat(options.values()).allSatisfy(eligible -> assertThat(eligible).isEmpty());
+        var detail = mvc.perform(get(base() + "/schedule/" + rows.getFirst().shift().getId() + "/options").session(session))
+            .andExpect(status().isOk()).andReturn();
+        @SuppressWarnings("unchecked") var loaded = (Map<Long, List<Volunteer>>) detail.getModelAndView().getModel().get("assignmentOptions");
+        assertThat(loaded.get(rows.getFirst().shift().getId())).extracting(Volunteer::getId).doesNotContain(owner.getId());
         mvc.perform(get(base() + "/schedule").session(session).param("page", "1"))
             .andExpect(status().isOk()).andExpect(model().attribute("rows", org.hamcrest.Matchers.hasSize(1)));
     }
@@ -187,5 +191,48 @@ class NavigationIntegrationTest {
         assertThat(visits.findAll()).extracting(v -> v.name).containsExactlyInAnyOrder("Alex Actual", "Another Person");
         mvc.perform(get("/logs").session(session)).andExpect(status().isOk())
             .andExpect(content().string(org.hamcrest.Matchers.containsString("Alex Actual")));
+    }
+
+    @Test void detailsAreFetchedAsScopedFragmentsWithProtectedAssignmentChoices() throws Exception {
+        owner.setNotes("Only in the requested profile");
+        var shift = service.saveShift(event.getId(), null, Map.of("name", "Detail shift", "departmentId", department.getId().toString(),
+            "date", "2027-06-04", "startTime", "09:00", "endTime", "10:00", "requiredCount", "2"));
+        var ids = new ArrayList<Long>();
+        ids.add(owner.getId());
+        Volunteer member = null;
+        for (int i = 0; i < 8; i++) {
+            member = service.saveVolunteer(event.getId(), null, profile("Team member " + i, String.format("210555%04d", 100 + i), "VOLUNTEER"));
+            ids.add(member.getId());
+        }
+        service.updateAssignments(event.getId(), shift.getId(), ids);
+        em.flush(); em.clear();
+        String volunteers = mvc.perform(get(base() + "/volunteers").session(session)).andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+        assertThat(volunteers).contains("data-detail-url", "Loading details...").doesNotContain("Only in the requested profile", "volunteer-assignment");
+        String schedule = mvc.perform(get(base() + "/schedule").session(session)).andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+        assertThat(schedule).contains("/options", "View all 9 volunteers").doesNotContain("assignment-choices", "name=\"volunteerIds\"", "shift-details-list");
+        for (String suffix : List.of("/detail", "/team", "/options")) {
+            String fragment = mvc.perform(get(base() + "/schedule/" + shift.getId() + suffix).session(session))
+                .andExpect(status().isOk()).andExpect(header().string("X-Scheduler-Detail", "true"))
+                .andExpect(header().string("Cache-Control", "no-store")).andReturn().getResponse().getContentAsString();
+            assertThat(fragment).contains("Team member 7").doesNotContain("<html", "<script", "app-header");
+            if (suffix.equals("/options")) assertThat(fragment).contains("name=\"_csrf\"", "checked=\"checked\"", "name=\"volunteerIds\"");
+        }
+        mvc.perform(get(base() + "/volunteers/" + owner.getId() + "/detail").session(session))
+            .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("Only in the requested profile")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("Detail shift")));
+        mvc.perform(get(base() + "/departments/" + department.getId() + "/detail").session(session))
+            .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("Detail shift")));
+        var ordinary = new MockHttpSession(); ordinary.setAttribute(PhoneAccess.SESSION, member.getPhone().replaceAll("[^0-9]", ""));
+        mvc.perform(get(base() + "/schedule/" + shift.getId() + "/options").session(ordinary)).andExpect(status().isForbidden());
+        mvc.perform(get(base() + "/schedule/" + shift.getId() + "/detail").session(ordinary)).andExpect(status().isOk());
+        mvc.perform(get(base() + "/schedule/" + shift.getId() + "/detail")).andExpect(status().is3xxRedirection());
+        var other = service.saveEvent(null, Map.of("type", "REGIONAL_CONVENTION", "startDate", "2027-06-11"));
+        String foreign = "/events/" + other.getId();
+        for (String path : List.of("/volunteers/" + owner.getId() + "/detail", "/departments/" + department.getId() + "/detail",
+                "/schedule/" + shift.getId() + "/detail", "/schedule/" + shift.getId() + "/team")) {
+            mvc.perform(get(foreign + path).session(session)).andExpect(status().isNotFound());
+        }
     }
 }

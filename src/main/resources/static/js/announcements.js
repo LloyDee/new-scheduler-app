@@ -1,14 +1,6 @@
 (() => {
-  async function request(url, options = {}) {
-    const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(15000), ...options });
-    if (!response.ok) throw new Error('Request failed');
-    return response;
-  }
-  function postOptions(body) {
-    const token = document.querySelector('meta[name="_csrf"]').content;
-    const header = document.querySelector('meta[name="_csrf_header"]').content;
-    return { method: 'POST', headers: { 'Content-Type': 'application/json', [header]: token }, ...(body ? { body: JSON.stringify(body) } : {}) };
-  }
+  const request = Scheduler.request;
+  const postOptions = Scheduler.post;
   let version = 0;
   async function home() {
     const container = document.querySelector('[data-home-announcements]');
@@ -58,8 +50,7 @@
     select.addEventListener('change', preview); preview();
   }
   function init() { composer(); home(); }
-  document.addEventListener('scheduler:page', init);
   document.addEventListener('scheduler:announcements', home);
   window.addEventListener('focus', home);
-  init();
+  Scheduler.page(init);
 })();

@@ -119,8 +119,7 @@ if (eventForm) {
 }
 
 }
-document.addEventListener('scheduler:page', initializePage);
-initializePage();
+Scheduler.page(initializePage);
 
 // Capture invalid events because native constraint validation does not bubble.
 let fieldErrorId = 0;
@@ -167,28 +166,5 @@ document.addEventListener("click", (event) => {
   if (event.target.closest("[data-print]")) window.print();
 });
 
-function closeMore() {
-  document.querySelector('.more-toggle')?.setAttribute('aria-expanded', 'false');
-  const menu = document.querySelector('.more-menu');
-  if (menu) menu.hidden = true;
-}
-document.addEventListener('click', event => {
-  const navigation = document.querySelector('.more-navigation');
-  if (!navigation) return;
-  if (event.target.closest('.more-toggle')) {
-    const menu = navigation.querySelector('.more-menu');
-    menu.hidden = !menu.hidden;
-    navigation.querySelector('.more-toggle').setAttribute('aria-expanded', String(!menu.hidden));
-  } else if (!navigation.contains(event.target) || event.target.closest('.more-menu a')) closeMore();
-});
-document.addEventListener('keydown', event => {
-  if (event.key === 'Escape' && document.querySelector('.more-menu:not([hidden])')) {
-    closeMore();
-    document.querySelector('.more-toggle').focus();
-  }
-});
-document.addEventListener('focusout', event => {
-  const navigation = event.target.closest('.more-navigation');
-  if (navigation && !navigation.contains(event.relatedTarget)) closeMore();
-});
+Scheduler.menus('more-navigation', { toggle: '.more-toggle', items: '.more-menu', blur: true });
 })();

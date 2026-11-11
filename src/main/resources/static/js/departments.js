@@ -1,9 +1,5 @@
 (() => {
-  const closeMenu = menu => {
-    menu.querySelector('.department-menu-toggle').setAttribute('aria-expanded', 'false');
-    menu.querySelector('.department-menu-items').hidden = true;
-  };
-  const closeMenus = except => document.querySelectorAll('.department-menu').forEach(menu => { if (menu !== except) closeMenu(menu); });
+  const { close: closeMenu, closeAll: closeMenus } = Scheduler.menus('department-menu');
   const openDialog = (dialog, opener) => {
     SchedulerDialogs.open(dialog, opener);
   };
@@ -27,28 +23,10 @@
       if (menu.dataset.ready) return;
       menu.dataset.ready = 'true';
       const toggle = menu.querySelector('.department-menu-toggle');
-      const items = menu.querySelector('.department-menu-items');
-      toggle.addEventListener('click', () => {
-        const opening = items.hidden;
-        closeMenus();
-        items.hidden = !opening;
-        toggle.setAttribute('aria-expanded', String(opening));
-      });
-      let tabbing = false;
-      menu.addEventListener('pointerdown', () => { tabbing = false; });
-      menu.addEventListener('keydown', event => {
-        tabbing = event.key === 'Tab';
-        if (event.key === 'Escape') { closeMenu(menu); toggle.focus(); event.stopPropagation(); }
-      });
-      menu.addEventListener('focusout', event => {
-        // Pointer focus changes can precede a mobile click; only Tab dismisses on blur.
-        if (tabbing && event.relatedTarget && !menu.contains(event.relatedTarget)) closeMenu(menu);
-      });
       menu.querySelector('[data-department-open]').addEventListener('click', event => {
         closeMenu(menu);
         openDialog(document.getElementById(event.currentTarget.getAttribute('aria-controls')), toggle);
       });
-      items.addEventListener('click', event => { if (event.target.closest('a, button')) closeMenu(menu); });
     });
     document.querySelectorAll('.department-dialog').forEach(dialog => {
       if (dialog.dataset.ready) return;
@@ -58,7 +36,5 @@
       }
     });
   }
-  document.addEventListener('click', event => { if (!event.target.closest('.department-menu')) closeMenus(); });
-  document.addEventListener('scheduler:page', initializeDepartments);
-  initializeDepartments();
+  Scheduler.page(initializeDepartments);
 })();

@@ -55,96 +55,27 @@
         </div>
         <th:block th:if="${!editable and row.assignments.size() > 6}">
           <button type="button" class="text-button volunteer-view-all" th:attr="data-team-dialog=${'team-dialog-' + row.shift.id},aria-controls=${'team-dialog-' + row.shift.id}" aria-haspopup="dialog" th:text="${'View all ' + row.assignments.size() + ' volunteers'}"></button>
-          <dialog class="team-sheet" th:id="${'team-dialog-' + row.shift.id}" th:attr="aria-labelledby=${'team-title-' + row.shift.id}">
-            <div class="team-sheet-heading">
-              <h2 th:id="${'team-title-' + row.shift.id}" th:text="${row.assignments.size() + ' volunteers'}"></h2>
-              <button type="button" class="secondary" data-team-close aria-label="Close volunteer list">&#215;</button>
-            </div>
-            <p th:text="${row.shift.name}"></p>
-            <label>Search volunteers<input type="search" data-team-search placeholder="Search by name" /></label>
-            <p class="sr-only" data-team-count role="status" aria-live="polite"></p>
-            <ul class="team-sheet-list">
-              <li th:each="assignment : ${row.assignments}" th:classappend="${ownVolunteerIds.contains(assignment.volunteer.id) ? 'is-you' : ''}">
-                <span th:text="${assignment.volunteer.name}"></span>
-                <small class="you-badge" th:if="${ownVolunteerIds.contains(assignment.volunteer.id)}">You</small>
-              </li>
-            </ul>
-            <p data-team-empty hidden>No volunteers match your search.</p>
-          </dialog>
+          <dialog class="team-sheet" th:id="${'team-dialog-' + row.shift.id}" th:attr="aria-label='Details',data-detail-url=${base + '/schedule/' + row.shift.id + '/team'}"><div class="app-dialog-content" data-detail-body><h2 tabindex="-1">Details</h2><p role="status">Loading details...</p></div><form method="dialog" class="app-dialog-footer"><button>Close</button></form></dialog>
         </th:block>
         <th:block th:if="${editable}">
           <button th:if="${row.assignments.size() > 6}" type="button" class="text-button volunteer-view-all" data-shift-open aria-haspopup="dialog" th:attr="aria-controls=${'shift-details-' + row.shift.id}" th:text="${'View all ' + row.assignments.size() + ' volunteers'}"></button>
-          <dialog class="app-dialog shift-details-dialog" th:id="${'shift-details-' + row.shift.id}" th:attr="aria-labelledby=${'shift-details-title-' + row.shift.id}">
-            <div class="app-dialog-content">
-              <div class="shift-details-heading">
-                <h2 tabindex="-1" th:id="${'shift-details-title-' + row.shift.id}" th:text="${row.shift.name}"></h2>
-                <div class="shift-details-coverage" th:classappend="${row.assignments.isEmpty() ? 'coverage-empty' : (row.assignments.size() < row.shift.requiredCount ? 'coverage-partial' : 'coverage-filled')}">
-                  <span><span class="sr-only">Status: </span><span th:text="${row.status}"></span></span>
-                  <strong><span class="sr-only">Staffing: </span><span th:text="${row.assignments.size() + ' / ' + row.shift.requiredCount}"></span></strong>
-                </div>
-              </div>
-              <dl class="shift-details-fields">
-                <dt><svg aria-hidden="true"><use href="#departments"/></svg><span class="sr-only">Department</span></dt><dd th:text="${row.shift.department.name}"></dd>
-                <dt><svg aria-hidden="true"><use href="#calendar"/></svg><span class="sr-only">Date</span></dt><dd th:text="${#temporals.format(row.shift.date, 'EEE, MMM d, yyyy')}"></dd>
-                <dt><svg aria-hidden="true"><use href="#clock"/></svg><span class="sr-only">Time</span></dt><dd><span th:text="${#temporals.format(row.shift.startTime, timePattern)}"></span> &ndash; <span th:text="${#temporals.format(row.shift.endTime, timePattern)}"></span></dd>
-              </dl>
-              <th:block th:if="${!#strings.isEmpty(row.shift.notes)}"><h3>Notes</h3><p class="preserve" th:text="${row.shift.notes}"></p></th:block>
-              <h3 th:text="${'Volunteers (' + row.assignments.size() + ')'}"></h3>
-              <p th:if="${row.assignments.isEmpty()}">No volunteers assigned.</p>
-              <label th:if="${!row.assignments.isEmpty()}">Search volunteers<input type="search" data-shift-search placeholder="Search by name" /></label>
-              <p class="sr-only" data-shift-count role="status" aria-live="polite"></p>
-              <ul class="shift-details-list">
-                <li th:each="assignment : ${row.assignments}" th:classappend="${ownVolunteerIds.contains(assignment.volunteer.id) ? 'is-you' : ''}">
-                  <svg class="shift-volunteer-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M4 21v-3a8 8 0 0 1 16 0v3"/></svg>
-                  <span th:text="${assignment.volunteer.name}"></span>
-                  <small class="you-badge" th:if="${ownVolunteerIds.contains(assignment.volunteer.id)}">You</small>
-                </li>
-              </ul>
-              <p data-shift-empty hidden>No volunteers match your search.</p>
-            </div>
-            <form method="dialog" class="app-dialog-footer"><button>Close</button></form>
-          </dialog>
+          <dialog class="app-dialog shift-details-dialog" th:id="${'shift-details-' + row.shift.id}" th:attr="aria-label='Details',data-detail-url=${base + '/schedule/' + row.shift.id + '/detail'}"><div class="app-dialog-content" data-detail-body><h2 tabindex="-1">Details</h2><p role="status">Loading details...</p></div><form method="dialog" class="app-dialog-footer"><button>Close</button></form></dialog>
         </th:block>
         <th:block th:if="${editable and canManage}">
           <div class="shift-menu">
             <button type="button" class="shift-menu-toggle" aria-label="Shift actions" aria-expanded="false"
                     th:attr="aria-controls=${'shift-actions-' + row.shift.id}"><span aria-hidden="true">&#8943;</span></button>
             <div class="shift-menu-items" th:id="${'shift-actions-' + row.shift.id}" hidden>
-              <button type="button" th:if="${!assignmentOptions[row.shift.id].isEmpty()}" th:attr="data-assignment-dialog=${'assignment-dialog-' + row.shift.id},aria-controls=${'assignment-dialog-' + row.shift.id}" aria-haspopup="dialog"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 4a3 3 0 0 1 0 6m3 11v-3a6 6 0 0 0-2-4"/></svg> Choose Volunteers</button>
+              <button type="button" th:attr="data-assignment-dialog=${'assignment-dialog-' + row.shift.id},aria-controls=${'assignment-dialog-' + row.shift.id}" aria-haspopup="dialog"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 4a3 3 0 0 1 0 6m3 11v-3a6 6 0 0 0-2-4"/></svg> Choose Volunteers</button>
               <a th:href="@{${base + '/schedule'}(edit=${row.shift.id})}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m15 4 5 5M4 20l5-1L21 7l-5-5L4 14z"/></svg> Edit Shift</a>
               <form method="post" th:action="@{${base + '/schedule/' + row.shift.id + '/delete'}}" data-confirm="Delete this shift and all its assignments?">
                 <button class="danger"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></svg> Delete Shift</button>
               </form>
             </div>
           </div>
-          <th:block th:if="${!assignmentOptions[row.shift.id].isEmpty()}">
-            <dialog class="app-dialog assignment-dialog" th:id="${'assignment-dialog-' + row.shift.id}"
-                    th:attr="aria-labelledby=${'assignment-title-' + row.shift.id},data-required-count=${row.shift.requiredCount}">
-              <form method="post" th:action="@{${base + '/schedule/' + row.shift.id + '/assignments'}}">
-                <div class="app-dialog-content">
-                  <h2 tabindex="-1" autofocus th:id="${'assignment-title-' + row.shift.id}">Choose Volunteers</h2>
-                  <p><strong th:text="${row.shift.name}"></strong> ? <span th:text="${row.shift.department.name}"></span></p>
-                  <label>Search volunteers<input type="search" data-assignment-search placeholder="Search by name" /></label>
-                  <p data-assignment-count role="status" aria-live="polite" th:text="${row.assignments.size() + ' selected, ' + row.missing + ' remaining'}"></p>
-                  <fieldset class="assignment-choices">
-                    <legend class="sr-only">Assigned volunteers</legend>
-                    <label class="checkbox-label" th:each="v : ${assignmentOptions[row.shift.id]}">
-                      <input type="checkbox" name="volunteerIds" th:value="${v.id}" th:checked="${assignedVolunteerIds[row.shift.id].contains(v.id)}" />
-                      <span th:text="${v.name}"></span>
-                    </label>
-                  </fieldset>
-                  <p data-assignment-empty hidden>No volunteers match your filters.</p>
-                </div>
-                <div class="app-dialog-footer">
-                  <button type="button" class="secondary" data-assignment-cancel>Cancel</button>
-                  <button type="submit" data-assignment-submit>Save</button>
-                </div>
-              </form>
-            </dialog>
+          <th:block>
+            <dialog class="app-dialog assignment-dialog" th:id="${'assignment-dialog-' + row.shift.id}" th:attr="aria-label='Details',data-required-count=${row.shift.requiredCount},data-detail-url=${base + '/schedule/' + row.shift.id + '/options'}"><div class="app-dialog-content" data-detail-body><h2 tabindex="-1">Details</h2><p role="status">Loading details...</p></div><form method="dialog" class="app-dialog-footer"><button>Close</button></form></dialog>
           </th:block>
-          <p class="muted" th:if="${assignmentOptions[row.shift.id].isEmpty()}">
-            No available volunteers in this department for this time window.
-          </p>
 
         </th:block>
       </article>

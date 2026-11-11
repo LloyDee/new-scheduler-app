@@ -1,0 +1,56 @@
+/* Tokens styles. */
+:root {
+    --ink: #203d37;
+    --muted: #64756e;
+    --green: #174d44;
+    --container-border: color-mix(in srgb, var(--border) 55%, transparent);
+    --amber: #8c5314;
+    color: var(--ink);
+    background: var(--paper);
+    font-synthesis: none;
+    --accent-hover: #103d35;
+    --green-light: #e4f2ed;
+    --paper: #f3f7f5;
+    --border: #d6e5df;
+    --surface-tint: #f6faf8;
+    --shadow: 0 8px 28px rgb(23 77 68 / 6%);
+    --radius: 20px;
+    font-family: "Aptos", "Segoe UI Variable", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+:root[data-theme="royal"] {
+    --green: #5941a9;
+    --accent-hover: #443080;
+    --green-light: #eee9fc;
+    --paper: #f6f4fb;
+    --border: #e0d9f0;
+    --ink: #302647;
+    --muted: #716780;
+    --surface-tint: #faf8ff;
+    --shadow: 0 8px 28px rgb(89 65 169 / 7%);
+}
+
+:root[data-theme="rose"] {
+    --green: #a33460;
+    --accent-hover: #822649;
+    --green-light: #fce8ef;
+    --paper: #fcf5f7;
+    --border: #efd8e1;
+    --ink: #482b38;
+    --muted: #806573;
+    --surface-tint: #fff8fb;
+    --shadow: 0 8px 28px rgb(163 52 96 / 7%);
+}
+
+:root[data-theme="azure"] {
+    --green: #1264a3;
+    --accent-hover: #0d4d7e;
+    --green-light: #e4f1fc;
+    --paper: #f2f7fc;
+    --border: #d4e3f1;
+    --ink: #243d53;
+    --muted: #60758a;
+    --surface-tint: #f7fbff;
+    --shadow: 0 8px 28px rgb(18 100 163 / 7%);
+}

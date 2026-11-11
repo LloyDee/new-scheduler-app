@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const vm = require('node:vm');
-const script = readFileSync('src/main/resources/static/js/weather.js', 'utf8');
+const script = (readFileSync('src/main/resources/static/js/shared.js', 'utf8') + '\n' + readFileSync('src/main/resources/static/js/weather.js', 'utf8'));
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
 function setup({ error, secure = true, deferLocation = false, code = 0, day = 1, assetBase = '/weather-icon-gifs/' } = {}) {

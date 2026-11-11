@@ -125,6 +125,5 @@ if (weatherCard) {
   }, { once: true });
 }
 }
-document.addEventListener('scheduler:page', initializeWeather);
-initializeWeather();
+Scheduler.page(initializeWeather);
 })();

@@ -22,9 +22,7 @@
 
   async function request(path, options = {}, eventId = context()) {
     const query = !options.method && eventId ? `?eventId=${encodeURIComponent(eventId)}` : '';
-    const response = await fetch(url + path + query, { credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(15000), ...options });
-    if (!response.ok) throw new Error('Notification request failed');
-    return response;
+    return Scheduler.request(url + path + query, { timeout: 15000, ...options });
   }
 
   async function refresh(force = false) {
@@ -85,9 +83,7 @@
             acknowledge.addEventListener('click', async () => {
               acknowledge.disabled = true;
               try {
-                const token = document.querySelector('meta[name="_csrf"]').content;
-                const header = document.querySelector('meta[name="_csrf_header"]').content;
-                await request(`/${item.id}/acknowledge`, { method: 'POST', headers: { [header]: token } });
+                await request(`/${item.id}/acknowledge`, Scheduler.post());
                 acknowledge.textContent = 'Acknowledged';
                 notifyAnnouncements();
                 refresh(true);
@@ -100,9 +96,7 @@
         pending = unread.map(item => item.id);
       }
       if (pending.length) {
-        const token = document.querySelector('meta[name="_csrf"]').content;
-        const header = document.querySelector('meta[name="_csrf_header"]').content;
-        await request('/read', { method: 'POST', headers: { 'Content-Type': 'application/json', [header]: token }, body: JSON.stringify(pending) });
+        await request('/read', Scheduler.post(pending));
         if (generation !== current) return;
         pending = [];
       }
@@ -136,9 +130,9 @@
     refresh();
   });
   window.addEventListener('focus', refresh);
-  document.addEventListener('scheduler:page', refresh);
   document.addEventListener('scheduler:announcements', () => { if (!notifying) refresh(true); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
   setInterval(() => { if (!document.hidden) refresh(); }, 30000);
+  document.addEventListener('scheduler:page', refresh);
   refresh();
 })();

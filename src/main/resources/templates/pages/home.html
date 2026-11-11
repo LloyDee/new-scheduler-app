@@ -79,15 +79,15 @@
       <div class="stats" th:if="${event != null}">
         <a class="card stat" th:href="${base + '/volunteers'}"
           ><span class="eyebrow">VOLUNTEERS</span
-          ><strong th:text="${volunteers.size()}"></strong
+          ><strong th:text="${volunteerCount}"></strong
           ><span>Friends Ready to Serve →</span></a
         ><a class="card stat" th:href="${base + '/departments'}"
           ><span class="eyebrow">DEPARTMENTS</span
-          ><strong th:text="${departments.size()}"></strong
+          ><strong th:text="${departmentCount}"></strong
           ><span>United in Jehovah’s Service →</span></a
         ><a class="card stat" th:href="${base + '/schedule'}"
           ><span class="eyebrow">SHIFTS</span
-          ><strong th:text="${allRows.size()}"></strong
+          ><strong th:text="${shiftCount}"></strong
           ><span>Opportunities to Show Love →</span></a
         ><a class="card stat" th:href="${base + '/reports?type=coverage'}"
           ><span class="eyebrow">OPEN POSITIONS</span

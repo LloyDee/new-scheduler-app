@@ -204,17 +204,15 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
         assertThat(data.availableVolunteers(shift).stream().filter(v -> !v.isEventAdministrator()).toList()).extracting(v -> v.getId()).containsExactly(available.getId());
         assertThat(data.availableVolunteers(adjacent).stream().filter(v -> !v.isEventAdministrator()).toList()).extracting(v -> v.getId())
                 .containsExactlyInAnyOrder(volunteer.getId(), available.getId()).doesNotContain(other.getId());
-        String html = mvc.perform(get("/events/" + event.getId() + "/schedule"))
+        String html = mvc.perform(get("/events/" + event.getId() + "/schedule/" + shift.getId() + "/options"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        String card = html.substring(html.indexOf("id=\"shift-" + shift.getId() + "\""));
-        card = card.substring(0, card.indexOf("</article>"));
+        String card = html;
         assertThat(card).contains("Available Person").doesNotContain("Alex Rivera", "Parking Person");
         service.assign(event.getId(), shift.getId(), available.getId(), false);
         assertThat(service.snapshot(event.getId()).availableVolunteers(shift).stream().filter(v -> !v.isEventAdministrator()).toList()).isEmpty();
-        html = mvc.perform(get("/events/" + event.getId() + "/schedule"))
+        html = mvc.perform(get("/events/" + event.getId() + "/schedule/" + shift.getId() + "/options"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        card = html.substring(html.indexOf("id=\"shift-" + shift.getId() + "\""));
-        card = card.substring(0, card.indexOf("</article>"));
+        card = html;
         assertThat(card).contains("Choose Volunteers", "checked=\"checked\"")
                 .doesNotContain("No available volunteers in this department");
     }
@@ -529,9 +527,12 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
                 .doesNotContain("alex@example.com", "Private", "tel:", "mailto:");
         String dialog = response.substring(response.indexOf("id=\"volunteer-dialog-" + volunteer.getId() + "\""));
         dialog = dialog.substring(0, dialog.indexOf("</dialog>"));
-        assertThat(dialog).contains("data-open-on-load=\"true\"", "mailto:alex@example.com", "Private &lt;note&gt;", "9:00 AM", "Close")
+        assertThat(dialog).contains("data-open-on-load=\"true\"", "data-detail-url").doesNotContain("mailto:", "Private");
+        dialog = mvc.perform(get("/events/" + event.getId() + "/volunteers/" + volunteer.getId() + "/detail"))
+            .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(dialog).contains("mailto:alex@example.com", "Private &lt;note&gt;", "9:00 AM", "Close")
                 .doesNotContain("Other Person", "11:00", ">Edit<", ">Delete<");
-        mvc.perform(get("/events/" + event.getId() + "/volunteers").param("view", volunteer.getId().toString())
+        mvc.perform(get("/events/" + event.getId() + "/volunteers/" + volunteer.getId() + "/detail")
                 .cookie(new jakarta.servlet.http.Cookie("schedulerTimeFormat", "24")))
                 .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("9:00 AM")));
     }
@@ -542,7 +543,9 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
                 .param("departmentId", parking.getId().toString()).param("view", volunteer.getId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("data-open-on-load=\"true\"")))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("No assignments yet.")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("data-detail-url")));
+        mvc.perform(get("/events/" + event.getId() + "/volunteers/" + volunteer.getId() + "/detail"))
+            .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("No assignments yet.")));
         Event otherEvent = event("Other", "REGIONAL_CONVENTION");
         mvc.perform(get("/events/" + otherEvent.getId() + "/volunteers").param("view", volunteer.getId().toString()))
                 .andExpect(status().isNotFound());
@@ -731,10 +734,10 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
 
     @Test void schedulePickerIncludesVolunteersWithoutDepartments() throws Exception {
         Volunteer unassigned = service.saveVolunteer(event.getId(), null, noDepartmentInput());
-        var result = mvc.perform(get("/events/" + event.getId() + "/schedule"))
+        var result = mvc.perform(get("/events/" + event.getId() + "/schedule/" + shift.getId() + "/options"))
                 .andExpect(status().isOk()).andReturn();
         String html = result.getResponse().getContentAsString();
-        assertThat(html).contains("Choose Volunteers", "assignment-dialog", "name=\"volunteerIds\"",
+        assertThat(html).contains("Choose Volunteers", "name=\"volunteerIds\"",
                 "data-assignment-submit>Save").doesNotContain("class=\"assignment-form\"");
         @SuppressWarnings("unchecked")
         var options = (Map<Long, List<Volunteer>>) result.getModelAndView().getModel().get("assignmentOptions");
@@ -748,13 +751,17 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
         assertThat(html).contains("department-menu-toggle", "View Department", "Edit Department", "Delete Department",
                 "data-department-card=\"department-dialog-" + department.getId(),
                 "class=\"department-card-title\"", "data-department-card-open", "aria-haspopup=\"dialog\"",
-                "Delete this department and all its shifts and assignments?", "No shifts in this department.",
-                "class=\"app-dialog department-dialog\"", "Morning shift", "method=\"dialog\" class=\"app-dialog-footer\"")
+                "Delete this department and all its shifts and assignments?", "data-detail-url",
+                "class=\"app-dialog department-dialog\"", "method=\"dialog\" class=\"app-dialog-footer\"")
                 .doesNotContain("View coverage", "department-coverage");
         var response = mvc.perform(get("/events/" + event.getId() + "/departments")
                         .param("view", department.getId().toString()).param("page", "99"))
                 .andExpect(status().isOk()).andReturn();
-        assertThat(response.getResponse().getContentAsString()).contains("data-department-auto-open=\"true\"", "Morning shift");
+        assertThat(response.getResponse().getContentAsString()).contains("data-department-auto-open=\"true\"", "data-detail-url").doesNotContain("Morning shift");
+        mvc.perform(get("/events/" + event.getId() + "/departments/" + department.getId() + "/detail"))
+            .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("Morning shift")));
+        mvc.perform(get("/events/" + event.getId() + "/departments/" + empty.getId() + "/detail"))
+            .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("No shifts in this department.")));
         @SuppressWarnings("unchecked")
         var dialogDepartments = (List<Department>) response.getModelAndView().getModel().get("dialogDepartments");
         assertThat(dialogDepartments).extracting(Department::getId).contains(department.getId()).doesNotContain(empty.getId());
@@ -775,20 +782,17 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
             service.updateAssignments(event.getId(), shift.getId(), ids);
             String html = mvc.perform(get("/events/" + event.getId() + "/schedule"))
                     .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-            assertThat(html).contains("data-shift-details=\"shift-details-" + shift.getId(),
-                    "class=\"app-dialog shift-details-dialog\"", "data-shift-open", "href=\"#departments\"",
-                    "href=\"#calendar\"", "href=\"#clock\"", "class=\"sr-only\">Department</span>",
-                    "class=\"sr-only\">Date</span>", "class=\"sr-only\">Time</span>",
-                    "class=\"shift-details-heading\"", "class=\"sr-only\">Status: </span>",
-                    "class=\"sr-only\">Staffing: </span>",
-                    "class=\"app-dialog-footer\"><button>Close</button>");
+            assertThat(html).contains("data-shift-details=\"shift-details-" + shift.getId(), "data-detail-url", "data-shift-open")
+                .doesNotContain("shift-details-list", "data-shift-search");
+            if (size == 7) assertThat(html).contains("View all 7 volunteers").doesNotContain("data-team-dialog=");
+            html = mvc.perform(get("/events/" + event.getId() + "/schedule/" + shift.getId() + "/detail"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
             assertThat(html).contains("shift-details-coverage " + (size == 0 ? "coverage-empty" : size < 4 ? "coverage-partial" : "coverage-filled"),
                     size + " / 4").doesNotContain("<dt>Status</dt>", "<dt>Staffing</dt>");
             if (size == 0) assertThat(html).contains("No volunteers assigned.");
             else {
                 assertThat(html).contains("data-shift-search", "Details Member " + (size - 1),
                         "class=\"shift-volunteer-icon\" aria-hidden=\"true\"");
-                if (size == 7) assertThat(html).contains("View all 7 volunteers").doesNotContain("data-team-dialog=");
             }
         }
         String departments = mvc.perform(get("/events/" + event.getId() + "/departments"))
@@ -807,7 +811,7 @@ class SchedulerIntegrationTest extends ManagerAccessFixture {
         assertThat(service.snapshot(event.getId()).assignments()).extracting(a -> a.getId()).containsExactly(retainedId);
         String html = mvc.perform(get("/events/" + event.getId() + "/schedule"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        assertThat(html).contains("assigned-person", "checked=\"checked\"", "Choose Volunteers")
+        assertThat(html).contains("assigned-person", "data-detail-url", "Choose Volunteers")
                 .doesNotContain("chip-remove");
         mvc.perform(post("/events/" + event.getId() + "/schedule/" + shift.getId() + "/assignments")
                 .with(csrf())).andExpect(status().is3xxRedirection())

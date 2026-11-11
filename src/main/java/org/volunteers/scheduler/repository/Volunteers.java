@@ -45,4 +45,21 @@ public interface Volunteers extends JpaRepository<Volunteer, Long> {
     List<Volunteer> findByNormalizedPhone(String normalizedPhone);
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"event", "departmentRoles"})
     List<Volunteer> findByEventIdOrderByNameAscIdAsc(Long eventId);
+    long countByEventIdAndParticipationEndedFalse(long eventId);
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"event", "departmentRoles"})
+    @org.springframework.data.jpa.repository.Query("""
+        select distinct v from Volunteer v join v.departmentRoles roles
+        where v.event.id = :eventId and v.participationEnded = false and key(roles).id in :ids
+        """)
+    List<Volunteer> findMembers(long eventId, java.util.Collection<Long> ids);
+    interface Eligible { Long getShiftId(); Long getVolunteerId(); }
+    @org.springframework.data.jpa.repository.Query("""
+        select s.id as shiftId, v.id as volunteerId from Shift s, Volunteer v
+        where s.id in :ids and v.event.id = :eventId and v.participationEnded = false
+        and (v.departmentRoles is empty or exists
+            (select m.id from Volunteer m join m.departmentRoles roles where m = v and key(roles) = s.department))
+        and not exists (select a.id from Assignment a where a.volunteer = v and a.shift.date = s.date
+            and a.shift.startTime < s.endTime and a.shift.endTime > s.startTime)
+        """)
+    List<Eligible> findAvailableForShifts(long eventId, java.util.Collection<Long> ids);
 }

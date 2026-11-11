@@ -20,6 +20,5 @@
       label.textContent = `your local timezone (${formatter.resolvedOptions().timeZone})`;
     });
   }
-  document.addEventListener('scheduler:page', formatLogs);
-  formatLogs();
+  Scheduler.page(formatLogs);
 })();
