@@ -122,10 +122,9 @@
                     th:attr="aria-labelledby=${'assignment-title-' + row.shift.id},data-required-count=${row.shift.requiredCount}">
               <form method="post" th:action="@{${base + '/schedule/' + row.shift.id + '/assignments'}}">
                 <div class="app-dialog-content">
-                  <h2 th:id="${'assignment-title-' + row.shift.id}">Choose Volunteers</h2>
+                  <h2 tabindex="-1" autofocus th:id="${'assignment-title-' + row.shift.id}">Choose Volunteers</h2>
                   <p><strong th:text="${row.shift.name}"></strong> ? <span th:text="${row.shift.department.name}"></span></p>
                   <label>Search volunteers<input type="search" data-assignment-search placeholder="Search by name" /></label>
-                  <label class="checkbox-label"><input type="checkbox" data-assignment-selected-only /> Selected only</label>
                   <p data-assignment-count role="status" aria-live="polite" th:text="${row.assignments.size() + ' selected, ' + row.missing + ' remaining'}"></p>
                   <fieldset class="assignment-choices">
                     <legend class="sr-only">Assigned volunteers</legend>

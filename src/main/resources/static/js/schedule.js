@@ -54,6 +54,7 @@ function initializeSchedule() {
     toggle.addEventListener('click', () => {
       items.hidden = !items.hidden;
       toggle.setAttribute('aria-expanded', String(!items.hidden));
+      if (!items.hidden) items.querySelector('[data-assignment-dialog], a, button')?.focus();
     });
     menu.addEventListener('keydown', event => {
       if (event.key === 'Escape') { closeShiftMenu(menu); toggle.focus(); }
@@ -102,7 +103,6 @@ function initializeSchedule() {
     if (!dialog) return;
     const form = dialog.querySelector('form');
     const search = dialog.querySelector('[data-assignment-search]');
-    const selectedOnly = dialog.querySelector('[data-assignment-selected-only]');
     const choices = [...dialog.querySelectorAll('.assignment-choices label')];
     const filter = () => {
       const query = search.value.trim().toLocaleLowerCase();
@@ -111,8 +111,7 @@ function initializeSchedule() {
       choices.forEach(choice => {
         const checked = choice.querySelector('input').checked;
         if (checked) selected++;
-        choice.hidden = (selectedOnly.checked && !checked)
-          || !choice.querySelector('span').textContent.toLocaleLowerCase().includes(query);
+        choice.hidden = !choice.querySelector('span').textContent.toLocaleLowerCase().includes(query);
         if (!choice.hidden) shown++;
       });
       dialog.querySelector('[data-assignment-count]').textContent = selected + ' selected, '
@@ -127,7 +126,7 @@ function initializeSchedule() {
       form.reset();
       filter();
       dialog.showModal();
-      search.focus();
+      dialog.querySelector('h2').focus();
       dialog.querySelector('.app-dialog-content').scrollTop = 0;
     });
     dialog.querySelector('[data-assignment-cancel]').addEventListener('click', () => dialog.close());

@@ -107,3 +107,5 @@ body:has(.app-dialog[open]) {
 
 .assignment-choices label[hidden] { display: none; }
 .assignment-dialog input[type="search"] { width: 100%; }
+
+.assignment-dialog { border-color: color-mix(in srgb, var(--container-border) 50%, transparent); }
