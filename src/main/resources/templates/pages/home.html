@@ -16,7 +16,6 @@
         <div>
           <div class="section-heading">
             <h2>Your upcoming shifts</h2>
-            <a th:href="${base + '/schedule'}">View schedule →</a>
           </div>
           <article class="card next-shift" th:if="${nextShift != null}" th:with="s=${nextShift.shift}" th:id="${'shift-' + s.id}" aria-labelledby="next-shift-title">
             <p class="eyebrow" th:text="${shiftInProgress ? 'Your shift is in progress' : 'Your next shift'}"></p>
@@ -39,8 +38,8 @@
           </article>
           <div class="card empty" th:if="${upcoming.isEmpty()}">
             <h3>No upcoming assignments</h3>
-            <p>You have no shifts coming up for this event. Check the schedule or contact your department overseer about your next assignment.</p>
-            <a class="button secondary" th:href="${base + '/schedule'}">Browse schedule</a>
+            <p>No upcoming shifts for this event. Check the schedule or contact your overseer.</p>
+            <a class="button secondary" th:href="${base + '/schedule?view=all'}">Browse schedule</a>
           </div>
           <th:block th:if="${!laterShifts.isEmpty()}">
             <h3 class="home-later-heading">After that</h3>

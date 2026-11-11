@@ -254,7 +254,12 @@ class PhoneLoginIntegrationTest {
     @Test void homeWithoutAssignmentsShowsPersonalEmptyState() throws Exception {
         mvc.perform(get(base() + "/home").session(session())).andExpect(status().isOk())
             .andExpect(content().string(org.hamcrest.Matchers.containsString("No upcoming assignments")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("href=\"" + base() + "/schedule?view=all\"")))
             .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Create a shift or adjust your filters"))));
+        mvc.perform(get(base() + "/schedule").session(session()).param("view", "all"))
+            .andExpect(status().isOk())
+            .andExpect(model().attribute("departmentId", department.getId()))
+            .andExpect(model().attribute("scheduleView", "all"));
     }
     @Test void personalShiftsAndHighlightUseIdentityNotName() throws Exception {
         var shift = service.saveShift(event.getId(), null, Map.of("name", "Welcome", "departmentId", department.getId().toString(),
