@@ -1722,6 +1722,12 @@ input, select, textarea { background: var(--surface-tint); border-color: var(--b
 .event-picker-option small { width: 100%; }
 .event-picker-option:hover, .event-picker-option[aria-current="true"] { background: var(--border); }
 .user-greeting .text-button { font-size: inherit; padding-inline: 0; }
+.user-greeting .logout-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+}
 @media (max-width: 480px) {
     .user-greeting { gap: 6px; font-size: .6875rem; }
     .user-greeting .active-event-switcher { gap: 4px; }
@@ -1844,6 +1850,19 @@ input, select, textarea { background: var(--surface-tint); border-color: var(--b
 
 /* Keep the Home weather summary compact between shifts and event statistics. */
 .home-shifts { margin-bottom: 22px; }
+.next-shift { border: 1px solid var(--green); border-top: 5px solid var(--green); }
+.next-shift h3 { margin: 4px 0 20px; font-size: 1.5rem; overflow-wrap: anywhere; }
+.next-shift-details { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 24px; margin: 0 0 24px; }
+.next-shift-details dt { color: var(--muted); font-size: .85rem; }
+.next-shift-details dd { margin: 4px 0 0; font-size: 1.1rem; font-weight: 650; overflow-wrap: anywhere; }
+.next-shift-details small { display: block; color: var(--muted); font-size: .85rem; font-weight: 400; }
+.next-shift-start dd { color: var(--green); font-size: clamp(2rem, 4vw, 3rem); line-height: 1.2; }
+.next-shift-start p { margin: 4px 0 0; }
+.home-later-heading { margin: 24px 0 12px; font-size: 1rem; }
+@media (max-width: 600px) {
+    .next-shift-details { grid-template-columns: 1fr; gap: 18px; }
+    .next-shift > .button { width: 100%; }
+}
 .weather-card.weather-card-compact { padding: 14px 18px; }
 .weather-card-compact .weather-icon { width: 56px; height: 56px; }
 .weather-card-compact .weather-temperature { font-size: 1.8rem; }

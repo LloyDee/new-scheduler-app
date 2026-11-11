@@ -221,6 +221,41 @@ class PhoneLoginIntegrationTest {
         mvc.perform(get("/events").session(session())).andExpect(status().isOk());
         mvc.perform(get("/settings").session(session())).andExpect(status().isOk());
     }
+    @Test void scheduleDefaultsToOwnDepartmentAndRoleAppropriateViewAcrossAllDays() throws Exception {
+        var first = service.saveShift(event.getId(), null, Map.of("name", "Friday welcome", "departmentId", department.getId().toString(),
+            "date", "2027-06-04", "startTime", "09:00", "endTime", "10:00", "requiredCount", "2"));
+        var second = service.saveShift(event.getId(), null, Map.of("name", "Saturday welcome", "departmentId", department.getId().toString(),
+            "date", "2027-06-05", "startTime", "09:00", "endTime", "10:00", "requiredCount", "2"));
+        service.saveShift(event.getId(), null, Map.of("name", "Unassigned welcome", "departmentId", department.getId().toString(),
+            "date", "2027-06-04", "startTime", "11:00", "endTime", "12:00", "requiredCount", "2"));
+        service.assign(event.getId(), first.getId(), volunteer.getId(), false);
+        service.assign(event.getId(), second.getId(), volunteer.getId(), false);
+        mvc.perform(get(base() + "/schedule").session(session())).andExpect(status().isOk())
+            .andExpect(model().attribute("departmentId", department.getId()))
+            .andExpect(model().attribute("scheduleView", "mine"))
+            .andExpect(model().attribute("date", org.hamcrest.Matchers.nullValue()))
+            .andExpect(model().attribute("rows", org.hamcrest.Matchers.hasSize(2)));
+        for (Volunteer.Role role : List.of(Volunteer.Role.OVERSEER, Volunteer.Role.ASSISTANT_OVERSEER)) {
+            var input = profile("2105550100");
+            input.put("departmentRole_" + department.getId(), role.name());
+            service.saveVolunteer(event.getId(), volunteer.getId(), input);
+            mvc.perform(get(base() + "/schedule").session(session())).andExpect(status().isOk())
+                .andExpect(model().attribute("departmentId", department.getId()))
+                .andExpect(model().attribute("scheduleView", "all"))
+                .andExpect(model().attribute("date", org.hamcrest.Matchers.nullValue()))
+                .andExpect(model().attribute("rows", org.hamcrest.Matchers.hasSize(3)));
+        }
+        mvc.perform(get(base() + "/schedule").session(session()).param("departmentId", "").param("view", "mine").param("date", "2027-06-05"))
+            .andExpect(status().isOk())
+            .andExpect(model().attribute("departmentId", org.hamcrest.Matchers.nullValue()))
+            .andExpect(model().attribute("scheduleView", "mine"))
+            .andExpect(model().attribute("rows", org.hamcrest.Matchers.hasSize(1)));
+    }
+    @Test void homeWithoutAssignmentsShowsPersonalEmptyState() throws Exception {
+        mvc.perform(get(base() + "/home").session(session())).andExpect(status().isOk())
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("No upcoming assignments")))
+            .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Create a shift or adjust your filters"))));
+    }
     @Test void personalShiftsAndHighlightUseIdentityNotName() throws Exception {
         var shift = service.saveShift(event.getId(), null, Map.of("name", "Welcome", "departmentId", department.getId().toString(),
             "date", "2027-06-04", "startTime", "09:00", "endTime", "10:00", "requiredCount", "2"));
@@ -234,9 +269,12 @@ class PhoneLoginIntegrationTest {
         service.assign(event.getId(), otherShift.getId(), sameName.getId(), false);
         mvc.perform(get(base() + "/home").session(session())).andExpect(status().isOk())
             .andExpect(model().attribute("upcoming", org.hamcrest.Matchers.hasSize(1)))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("Your next shift")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("Contact person")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("No contact assigned")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("id=\"shift-" + shift.getId() + "\"")))
             .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("id=\"shift-" + otherShift.getId() + "\""))));
-        String html = mvc.perform(get(base() + "/schedule").session(session()))
+        String html = mvc.perform(get(base() + "/schedule").session(session()).param("view", "all"))
             .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         String ownCard = html.substring(html.indexOf("id=\"shift-" + shift.getId() + "\""));
         ownCard = ownCard.substring(0, ownCard.indexOf("</article>"));
@@ -244,6 +282,14 @@ class PhoneLoginIntegrationTest {
         String otherCard = html.substring(html.indexOf("id=\"shift-" + otherShift.getId() + "\""));
         otherCard = otherCard.substring(0, otherCard.indexOf("</article>"));
         assertThat(otherCard).contains("assigned-person", sameName.getName()).doesNotContain("is-you", "you-badge");
+
+        var overseer = profile("2105550102");
+        overseer.put("name", "Jordan Contact");
+        overseer.put("departmentRole_" + department.getId(), "OVERSEER");
+        service.saveVolunteer(event.getId(), null, overseer);
+        mvc.perform(get(base() + "/home").session(session())).andExpect(status().isOk())
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("Jordan Contact")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("Department overseer")));
     }
     @Test void logoutEndsSessionAndCsrfIsRequired() throws Exception {
         mvc.perform(post("/login").param("phone", "2105550100")).andExpect(status().isForbidden());

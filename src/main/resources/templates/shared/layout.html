@@ -129,7 +129,13 @@
            data-own-volunteer-link
            th:text="${'Hi ' + currentUserFirstName}"></a>
         <span th:if="${currentUserFirstName != null and currentVolunteerId == null}" th:text="${'Hi ' + currentUserFirstName}"></span>
-        <form method="post" th:action="@{/logout}"><button class="text-button">Logout</button></form><span th:if="${isAppOwner}" class="badge">App Owner</span>
+        <form method="post" th:action="@{/logout}">
+          <button type="submit" class="text-button logout-icon" aria-label="Logout" title="Logout">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <path d="M9 5H4v14h5M10 12h11m-4-4 4 4-4 4" />
+            </svg>
+          </button>
+        </form><span th:if="${isAppOwner}" class="badge">App Owner</span>
         </div>
       </div>
       <div

@@ -141,10 +141,22 @@ public class WebController {
         model.addAttribute("missing", data.rows().stream().mapToInt(SchedulerService.ShiftRow::getMissing).sum());
         LocalDateTime now = LocalDateTime.now();
         Set<Long> ownIds = access.ids(session);
-        model.addAttribute("upcoming", data.rows().stream().filter(r ->
+        var upcoming = data.rows().stream().filter(r ->
                         r.assignments().stream().anyMatch(a -> ownIds.contains(a.getVolunteer().getId())) &&
                         LocalDateTime.of(r.shift().getDate(), r.shift().getEndTime()).isAfter(now))
-                .toList());
+                .toList();
+        model.addAttribute("upcoming", upcoming);
+        model.addAttribute("laterShifts", upcoming.stream().skip(1).toList());
+        if (!upcoming.isEmpty()) {
+            var next = upcoming.getFirst();
+            model.addAttribute("nextShift", next);
+            model.addAttribute("shiftInProgress", LocalDateTime.of(next.shift().getDate(), next.shift().getStartTime()).compareTo(now) <= 0);
+            var contacts = data.volunteers().stream().filter(v -> !v.isParticipationEnded())
+                    .filter(v -> v.getDepartmentRoles().entrySet().stream().anyMatch(e ->
+                            e.getKey().getId().equals(next.shift().getDepartment().getId()) && e.getValue() == Volunteer.Role.OVERSEER))
+                    .toList();
+            model.addAttribute("nextContacts", contacts);
+        }
         return "pages/home";
     }
 
@@ -304,6 +316,9 @@ public class WebController {
                     @RequestParam(defaultValue = "0") int page,
                     Model model, HttpSession session, HttpServletRequest request) {
         var data = prepare(eventId, model, session);
+        if (request.getParameter("departmentId") == null) departmentId = access.department(session, eventId);
+        if (request.getParameter("view") == null && !access.canManage(session, eventId)
+                && access.ownVolunteerId(session, eventId) != null) view = "mine";
         filter(data, departmentId, date, model);
         @SuppressWarnings("unchecked") var filteredRows = (List<SchedulerService.ShiftRow>) model.getAttribute("rows");
         assert filteredRows != null;

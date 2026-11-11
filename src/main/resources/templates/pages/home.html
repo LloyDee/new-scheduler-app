@@ -12,16 +12,43 @@
 <!--          <p class="muted" th:text="${event != null and event.type.name() == 'CIRCUIT_ASSEMBLY' ? event.assembly : ''}"></p>-->
         </div>
       </div>
-      <div data-home-announcements aria-live="polite"></div>
       <div class="home-shifts" th:if="${event != null}">
         <div>
           <div class="section-heading">
             <h2>Your upcoming shifts</h2>
             <a th:href="${base + '/schedule'}">View schedule →</a>
           </div>
-          <div th:replace="~{shared/fragments :: shifts(${upcoming}, false)}"></div>
+          <article class="card next-shift" th:if="${nextShift != null}" th:with="s=${nextShift.shift}" th:id="${'shift-' + s.id}" aria-labelledby="next-shift-title">
+            <p class="eyebrow" th:text="${shiftInProgress ? 'Your shift is in progress' : 'Your next shift'}"></p>
+            <h3 id="next-shift-title" th:text="${s.name}"></h3>
+            <dl class="next-shift-details">
+              <div class="next-shift-start">
+                <dt>Starts at</dt>
+                <dd th:text="${#temporals.format(s.startTime, timePattern)}"></dd>
+                <p th:text="${#temporals.format(s.date, 'EEE, MMM d, yyyy')}"></p>
+                <p>Ends at <span th:text="${#temporals.format(s.endTime, timePattern)}"></span></p>
+              </div>
+              <div><dt>Department</dt><dd th:text="${s.department.name}"></dd></div>
+              <div><dt>Contact person</dt>
+                <dd th:each="person : ${nextContacts}"><span th:text="${person.name}"></span><small>Department overseer</small></dd>
+                <dd th:if="${nextContacts.isEmpty()}">No contact assigned<small>Ask your event organizer for help.</small></dd>
+              </div>
+            </dl>
+            <p class="preserve" th:if="${!#strings.isEmpty(s.notes)}" th:text="${s.notes}"></p>
+            <a class="button" th:href="${base + '/schedule#shift-' + s.id}">View shift details</a>
+          </article>
+          <div class="card empty" th:if="${upcoming.isEmpty()}">
+            <h3>No upcoming assignments</h3>
+            <p>You have no shifts coming up for this event. Check the schedule or contact your department overseer about your next assignment.</p>
+            <a class="button secondary" th:href="${base + '/schedule'}">Browse schedule</a>
+          </div>
+          <th:block th:if="${!laterShifts.isEmpty()}">
+            <h3 class="home-later-heading">After that</h3>
+            <div th:replace="~{shared/fragments :: shifts(${laterShifts}, false)}"></div>
+          </th:block>
         </div>
       </div>
+      <div data-home-announcements aria-live="polite"></div>
       <article class="card weather-card weather-card-compact" aria-label="Current location weather" data-weather>
         <div class="weather-scene" aria-hidden="true">
           <img class="weather-background" data-weather-background src="/weather-card-gifs/cloudy.gif" th:src="@{/weather-card-gifs/cloudy.gif}" alt="" decoding="async" />
